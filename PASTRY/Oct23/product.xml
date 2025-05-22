@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<products>
+    <product>   
+        <id>1</id>
+        <name>Americano</name>
+        <type>Beverage</type>
+        <price>130</price>
+        <description>A strong coffee made with espresso and hot water.</description>
+        <image>coffee.jpg</image>
+    </product>
+
+    <product>
+        <id>2</id>    
+        <name>Latte</name>
+        <type>Beverage</type>
+        <price>160</price>
+        <description>A smooth coffee with espresso and steamed milk.</description>
+        <image>latte.jpg</image>
+    </product>
+
+    <product>
+        <id>3</id>
+        <name>Hawaiian Pizza</name>
+        <type>Food</type>
+        <price>280</price>
+        <description>A pizza topped with ham, pineapple, and mozzarella cheese.</description>
+        <image>hm.jpg</image>
+    </product>
+
+    <product>
+        <id>4</id>    
+        <name>Pepperoni Pizza</name>
+        <type>Food</type>
+        <price>300</price>
+        <description>A classic pizza with pepperoni, tomato sauce, and mozzarella cheese.</description>
+        <image>f1.jpg</image>
+    </product>
+
+    <product>
+        <id>5</id>    
+        <name>Beef Burger</name>
+        <type>Food</type>
+        <price>250</price>
+        <description>A juicy beef patty with lettuce, tomato, cheese, and a toasted bun.</description>
+        <image>b1.jpg</image>
+    </product>
+
+    <product>
+        <id>6</id>
+        <name>Chocolate Donut</name>
+        <type>Pastry</type>
+        <price>90</price>
+        <description>A soft and sweet donut covered in rich chocolate glaze.</description>
+        <image>d1.jpg</image>
+    </product>
+
+    <product>
+        <id>7</id>
+        <name>Apple Pie</name>
+        <type>Dessert</type>
+        <price>170</price>
+        <description>A flaky pastry filled with sweet cinnamon-spiced apples.</description>
+        <image>apple.jpg</image>
+    </product>
+
+    <product>
+        <id>8</id>    
+        <name>Vanilla Cupcake</name>
+        <type>Dessert</type>
+        <price>100</price>
+        <description>A light and fluffy vanilla cupcake with buttercream frosting.</description>
+        <image>vanilla.jpg</image>
+    </product>
+
+    <product>
+        <id>9</id>
+        <name>Macaron</name>
+        <type>Pastry</type>
+        <price>60</price>
+        <description>A delicate and colorful French almond-based cookie.</description>
+        <image>macaron.jpg</image>
+    </product>
+
+    <product>
+        <id>10</id>    
+        <name>Cold Brew Coffee</name>
+        <type>Beverage</type>
+        <price>180</price>
+        <description>A refreshing coffee brewed slowly with cold water.</description>
+        <image>cold.jpg</image>
+    </product>
+
+    <product>
+        <id>11</id>    
+        <name>Fruit Parfait</name>
+        <type>Dessert</type>
+        <price>200</price>
+        <description>A layered dessert with yogurt, granola, and fresh fruits.</description>
+        <image>f1.jpg</image>
+    </product>
+
+    <product>
+        <id>12</id>    
+        <name>Avocado Toast</name>
+        <type>Food</type>
+        <price>190</price>
+        <description>Toasted bread topped with mashed avocado and seasonings.</description>
+        <image>Avocado.jpg</image>
+    </product>
+
+    <product>
+        <id>13</id>
+        <name>Matcha Latte</name>
+        <type>Beverage</type>
+        <price>170</price>
+        <description>A creamy green tea latte with a rich matcha flavor.</description>
+        <image>iced-matcha-latte.jpg</image>
+    </product>
+
+    <product>
+        <id>14</id>
+        <name>Garlic Bread</name>
+        <type>Snack</type>
+        <price>110</price>
+        <description>Crunchy bread slices with butter, garlic, and herbs.</description>
+        <image>images.jpg</image>
+    </product>
+
+    <product>
+        <id>15</id>
+        <name>BBQ Chicken Wings</name>
+        <type>Food</type>
+        <price>260</price>
+        <description>Chicken wings glazed in smoky and tangy BBQ sauce.</description>
+        <image>BBQ-chicken.jpg</image>
+    </product>
+
+    <product>
+        <id>16</id>
+        <name>Strawberry Shortcake</name>
+        <type>Dessert</type>
+        <price>230</price>
+        <description>A soft sponge cake layered with whipped cream and strawberries.</description>
+        <image>applecake.jpg</image>
+    </product>
+
+    <product>
+        <id>17</id>
+        <name>Hot Chocolate</name>
+        <type>Beverage</type>
+        <price>150</price>
+        <description>A warm and rich chocolate drink topped with whipped cream.</description>
+        <image>hotchoco.jpg</image>
+    </product>
+
+    <product>
+        <id>18</id>
+        <name>Iced Caramel Latte</name>
+        <type>Beverage</type>
+        <price>190</price>
+        <description>A refreshing iced latte with a sweet caramel twist.</description>
+        <image>iced-caramel.jpg</image>
+    </product>
+
+    <product>
+        <id>19</id>
+        <name>Chicken Alfredo Pasta</name>
+        <type>Food</type>
+        <price>290</price>
+        <description>A creamy pasta dish with grilled chicken and Parmesan cheese.</description>
+        <image>CHICKEN.jpg</image>
+    </product>
+
+    <product>
+        <id>20</id>
+        <name>Berry Smoothie</name>
+        <type>Beverage</type>
+        <price>185</price>
+        <description>A healthy and refreshing smoothie with mixed berries and yogurt.</description>
+        <image>blueberry.jpg</image>
+    </product>
+</products>

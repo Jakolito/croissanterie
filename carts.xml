@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<carts>
+  <cart user_id="gian">
+    <item product_id="p001">
+      <quantity>1</quantity>
+      <image>uploads/pic1.png</image>
+      <name>Vanilla Bean Strawberry Bliss</name>
+      <price>650</price>
+    </item>
+  </cart>
+  <cart user_id="jonathan">
+    
+    
+  </cart>
+  <cart user_id="jamille">
+    <item product_id="p002">
+      <quantity>3</quantity>
+      <image>uploads/d2.jpg</image>
+      <name>Cherry Blossom Bun</name>
+      <price>40</price>
+    </item>
+    <item product_id="p003">
+      <quantity>1</quantity>
+      <image>uploads/pic3.png</image>
+      <name>Mini Floss Pillows</name>
+      <price>40</price>
+    </item>
+  </cart>
+  <cart user_id="ian">
+    <item product_id="p001">
+      <quantity>1</quantity>
+      <image>uploads/pic1.png</image>
+      <name>Vanilla Bean Strawberry Bliss</name>
+      <price>650</price>
+    </item>
+  </cart>
+</carts>

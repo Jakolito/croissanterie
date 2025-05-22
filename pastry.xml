@@ -1,0 +1,175 @@
+<?xml version="1.0"?>
+<pastries>
+  <pastry id="p001">
+    <name>Vanilla Bean Strawberry Bliss</name>
+    <description>A delightful cake featuring layers of vanilla bean sponge with fresh strawberry filling, topped with vanilla buttercream.</description>
+    <producttype>Cakes</producttype>
+    <price>650</price>
+    <quantity>1</quantity>
+    <producttag>c1</producttag>
+    <image>uploads/pic1.png</image>
+  </pastry>
+  <pastry id="p002">
+    <name>Cherry Blossom Bun</name>
+    <description>"Soft and fluffy bun with a sweet cherry filling, decorated with pink cherry blossom motif."</description>
+    <producttype>Bun</producttype>
+    <price>40</price>
+    <quantity>7</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/d2.jpg</image>
+  </pastry>
+  <pastry id="p003">
+    <name>Mini Floss Pillows</name>
+    <description>"Savory bite-sized pastries filled with pork floss, encased in a light, flaky pastry shell."</description>
+    <producttype>Bun</producttype>
+    <price>40</price>
+    <quantity>13</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/pic3.png</image>
+  </pastry>
+  <pastry id="p004">
+    <name>Mini Cheese Pillows</name>
+    <description>"Delectable mini pastries with a rich, creamy cheese filling in a buttery, flaky crust."</description>
+    <producttype>Bun</producttype>
+    <price>40</price>
+    <quantity>10</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/pic4.png</image>
+  </pastry>
+  <pastry id="p005">
+    <name>Assorted Brookie</name>
+    <description>"A delicious hybrid of brownies and cookies in assorted flavors, offering the perfect balance of chewy and crunchy textures."</description>
+    <producttype>Brookie Pizza</producttype>
+    <price>400</price>
+    <quantity>1</quantity>
+    <producttag>bp1</producttag>
+    <image>uploads/pic5.png</image>
+  </pastry>
+  <pastry id="p006">
+    <name>Ube Coco Brookie Pizza</name>
+    <description>"A unique dessert pizza combining the flavors of purple yam and coconut in a brownie-cookie base, perfect for sharing."</description>
+    <producttype>Brookie Pizza</producttype>
+    <price>400</price>
+    <quantity>2</quantity>
+    <producttag>bp1</producttag>
+    <image>uploads/pic6.png</image>
+  </pastry>
+  <pastry id="p007">
+    <name>Choco Chip Brookie Pizza</name>
+    <description>"Indulgent chocolate chip cookie-brownie fusion in pizza form, loaded with chocolate chips throughout."</description>
+    <producttype>Brookie Pizza</producttype>
+    <price>400</price>
+    <quantity>3</quantity>
+    <producttag>bp1</producttag>
+    <image>uploads/pic7.png</image>
+  </pastry>
+  <pastry id="p008">
+    <name>Three Cheese Brookie Pizza</name>
+    <description>"Decadent brookie pizza featuring three premium cheeses blended into a sweet-savory dessert experience."</description>
+    <producttype>Brookie Pizza</producttype>
+    <price>400</price>
+    <quantity>3</quantity>
+    <producttag>bp1</producttag>
+    <image>uploads/pic8.png</image>
+  </pastry>
+  <pastry id="p009">
+    <name>Carrot Cheesecake (5 inches)</name>
+    <description>"Carrot cheesecake filling enclosed in a moist carrot cake base, topped with cream frosting, roasted walnuts and toasted pumpkin seeds."</description>
+    <producttype>Cakes</producttype>
+    <price>650</price>
+    <quantity>3</quantity>
+    <producttag>c1</producttag>
+    <image>uploads/pic9.png</image>
+  </pastry>
+  <pastry id="p010">
+    <name>Coffee Caramel Chiffon (6 inches)</name>
+    <description>"A 5 layer cake made with coffee flavored chiffon and dulce de leche custard, frosted with vanilla and caramel buttercream, sprinkles with toasted crumbles."</description>
+    <producttype>Cakes</producttype>
+    <price>650</price>
+    <quantity>3</quantity>
+    <producttag>c1</producttag>
+    <image>uploads/pic10.png</image>
+  </pastry>
+  <pastry id="p011">
+    <name>Choco Messy Bun</name>
+    <description>"A rich chocolate bun filled with creamy chocolate custard filling, topped with melted dark chocolate and cocoa powder."</description>
+    <producttype>Bun</producttype>
+    <price>40</price>
+    <quantity>3</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/pic11.png</image>
+  </pastry>
+  <pastry id="p012">
+    <name>Pumpkin Bun (Pack of 7)</name>
+    <description>"Made with fresh roasted pumpkin infused dough."</description>
+    <producttype>Bun</producttype>
+    <price>140</price>
+    <quantity>3</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/pic12.png</image>
+  </pastry>
+  <pastry id="p013">
+    <name>Red Velvet Messy Bun</name>
+    <description>"A red velvet bun filled with cream cheese filling, dusted with powdered sugar."</description>
+    <producttype>Bun</producttype>
+    <price>80</price>
+    <quantity>3</quantity>
+    <producttag>b1</producttag>
+    <image>uploads/pic13.png</image>
+  </pastry>
+  <pastry id="p014">
+    <name>Cinnamon Loaf</name>
+    <description>"A red velvet bun filled with cream cheese filling, dusted with powdered sugar."</description>
+    <producttype>Bread</producttype>
+    <price>211</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic14.png</image>
+  </pastry>
+  <pastry id="p015">
+    <name>Japanese Chocolate Roll</name>
+    <description>"Soft dough filled with choco sticks and drizzled with dark chocolate and powdered sugar."</description>
+    <producttype>Bread</producttype>
+    <price>50</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic15.png</image>
+  </pastry>
+  <pastry id="p016">
+    <name>Premium Cheese Loaf</name>
+    <description>"Classic soft and fluffy Japanese milk bread, infused with cheese bits."</description>
+    <producttype>Bread</producttype>
+    <price>200</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic16.png</image>
+  </pastry>
+  <pastry id="p017">
+    <name>Cranberry Cheese Roll (3pcs)</name>
+    <description>"Soft rolls with sweet cranberries and premium cheese."</description>
+    <producttype>Bread</producttype>
+    <price>100</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic17.png</image>
+  </pastry>
+  <pastry id="p018">
+    <name>Cheese Stick</name>
+    <description>"Soft bread with cheddar cheese filling."</description>
+    <producttype>Bread</producttype>
+    <price>60</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic18.png</image>
+  </pastry>
+  <pastry id="p019">
+    <name>Whole Wheat Loaf</name>
+    <description>"A soft whole wheat loaf topped with oats."</description>
+    <producttype>Bread</producttype>
+    <price>160</price>
+    <quantity>3</quantity>
+    <producttag>b2</producttag>
+    <image>uploads/pic19.png</image>
+  </pastry>
+
+</pastries>

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Online Store</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f8f8f8;
+}
+
+.nav-container {
+    background: white;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.search-bar {
+    position: absolute;
+    top: 80px;
+    width: 200px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.search-Sort{
+    position: absolute;
+    top: 130px;
+    width: 200px;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.type-filter {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    margin-left: 10px;
+}
+
+.search-btn {
+    position: absolute;
+    top: 80px;
+    left: 250px;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    background: black;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+}
+
+.product-grid {
+    position: absolute;
+    top: 200px;
+    left: 100px;
+    height: 330px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
+    gap: 60px;
+    padding: 20px;
+    justify-content: center;
+    max-width: 1200px;
+    margin: auto;
+}
+
+.product {
+    background: white;
+    padding: 15px;
+    text-align: center;
+    width: 100%;
+    box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.product img {
+    width: 100%;
+    max-height: 150px;
+    object-fit: cover;
+    border-radius: 5px;
+}
+
+.search-btn1 {
+    border: none;
+    padding: 10px;
+    cursor: pointer;
+    background: black;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    width: 100%;
+}
+
+button:hover {
+    background: pink;
+}
+
+    </style>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            loadProducts();
+        });
+
+        function searchProduct() {
+            let input = document.getElementById('searchBar').value.toLowerCase();
+            let products = document.getElementsByClassName('product');
+
+            for (let product of products) {
+                let productName = product.querySelector('h3').innerText.toLowerCase();
+                let productType = product.dataset.type.toLowerCase();
+
+                if (productName.includes(input) || productType.includes(input) || input === "") {
+                    product.style.display = "block";
+                } else {
+                    product.style.display = "none";
+                }
+            }
+        }
+
+        function loadProducts() {
+            fetch("product.xml")
+                .then(response => response.text())
+                .then(xmlText => {
+                    let parser = new DOMParser();
+                    let xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                    let products = xmlDoc.getElementsByTagName("product");
+                    let productArray = [];
+
+                    for (let i = 0; i < products.length; i++) {
+                        let name = products[i].getElementsByTagName("name")[0].textContent;
+                        let type = products[i].getElementsByTagName("type")[0].textContent;
+                        let price = parseFloat(products[i].getElementsByTagName("price")[0].textContent);
+                        let description = products[i].getElementsByTagName("description")[0].textContent;
+                        let image = products[i].getElementsByTagName("image")[0].textContent;
+
+                        productArray.push({ name, type, price, description, image });
+                    }
+
+                    displayProducts(productArray);
+                })
+                .catch(error => console.log("Error loading XML: ", error));
+        }
+
+        function displayProducts(products) {
+            let productContainer = document.getElementById("productGrid");
+            productContainer.innerHTML = "";
+
+            for (let product of products) {
+                let productDiv = document.createElement("div");
+                productDiv.classList.add("product");
+                productDiv.dataset.type = product.type.toLowerCase();
+
+                productDiv.innerHTML = `
+                    <img src="images/${product.image}" alt="${product.name}">
+                    <h3>${product.name}</h3>
+                    <p>₱${product.price.toFixed(2)}</p>
+                    <p>${product.description}</p>
+                    <button class="search-btn1">Add to Cart</button>
+                `;
+
+                productContainer.appendChild(productDiv);
+            }
+        }
+
+        function sortProducts() {
+            let sortOrder = document.getElementById("priceSort").value;
+            fetch("product.xml")
+                .then(response => response.text())
+                .then(xmlText => {
+                    let parser = new DOMParser();
+                    let xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                    let products = xmlDoc.getElementsByTagName("product");
+                    let productArray = [];
+
+                    for (let i = 0; i < products.length; i++) {
+                        let name = products[i].getElementsByTagName("name")[0].textContent;
+                        let type = products[i].getElementsByTagName("type")[0].textContent;
+                        let price = parseFloat(products[i].getElementsByTagName("price")[0].textContent);
+                        let description = products[i].getElementsByTagName("description")[0].textContent;
+                        let image = products[i].getElementsByTagName("image")[0].textContent;
+
+                        productArray.push({ name, type, price, description, image });
+                    }
+
+                    if (sortOrder === "asc") {
+                        productArray.sort((a, b) => a.price - b.price);
+                    } else if (sortOrder === "desc") {
+                        productArray.sort((a, b) => b.price - a.price);
+                    }
+
+                    displayProducts(productArray);
+                })
+                .catch(error => console.log("Error sorting products: ", error));
+        }
+    </script>
+</head>
+<body>
+    <header>
+        <div class="nav-container">
+            <input type="text" id="searchBar" class="search-bar" placeholder="Search products type/name..." onkeyup="searchProduct()">
+            <button class="search-btn" onclick="searchProduct()">Search</button>
+            <select id="priceSort" class="search-Sort" onchange="sortProducts()">
+                <option value="">Sort by Price</option>
+                <option value="asc">Lowest to Highest</option>
+                <option value="desc">Highest to Lowest</option>
+            </select>
+            <a href="landingpage.html">Logout</a> 
+        </div>
+    </header>
+
+    <section id="productGrid" class="product-grid"></section>
+</body>
+</html>

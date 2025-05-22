@@ -1,0 +1,377 @@
+.loginbg{
+	position: absolute;
+	height:869;
+	width: 1520;
+}
+.form{
+	position: absolute;
+	background-color: e6d1b3;
+	height:210px;
+	width:400px;
+	left: 610px;
+	top:220px;
+}
+.pastryName{
+	position:absolute;
+	top:0px;
+	left: 300px;
+	font-size:100px;
+}
+.form2{
+	position: absolute;
+	background-color: e6d1b3;
+	height:200px;
+	width:400px;
+	left: 610px;
+	top:220px;
+}
+.logintxt{
+	position: relative;
+	left:160px;
+}
+.Registerhere{
+	position:relative;
+	left: 60px;
+}
+.registerb{
+	position: absolute;
+	left: 230px;
+	top: 160px;
+}
+.Backb{
+	position: absolute;
+	left: 305px;
+	top: 160px;
+}
+.regacc{
+	position: relative;
+	left:90px;
+}
+.homebg{
+	position:absolute;
+	height:800px;
+	width: 1500px;
+}
+.lacroissant{
+	position:absolute; 
+	height: 600px;
+	width:900px;
+	top: 0px;
+	left: 140px;
+}
+.croissantime{
+	position:relative;
+	left: 150px;
+	top: 80px;
+	text-decoration:overline;
+}
+.navhome{
+	position: absolute;
+	left: 870px;
+	top:85px;
+	
+}
+.navpastry{
+	position: absolute;
+	left: 1030px;
+	top: 85px;
+	
+}
+.navaboutus{
+	position: relative;
+	left: 1180px;
+	top: 57px;
+}
+.logout{
+	position: relative;
+	left: 1350px;
+	top: 17px;
+}
+.circle1{
+	position:absolute;
+	background-color: white;
+	left: 1000px;
+	top: 200px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.cookie{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.circle2{
+	position:absolute;
+	background-color: white;
+	left: 1100px;
+	top: 350px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.nutella{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.circle3{
+	position:absolute;
+	background-color: white;
+	left: 1000px;
+	top: 500px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.brownie{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.circle4{
+	position:absolute;
+	background-color: white;
+	left: 1220px;
+	top: 220px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.butter{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.circle5{
+	position:absolute;
+	background-color: white;
+	left: 830px;
+	top: 500px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.pistachio{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.circle6{
+	position:absolute;
+	background-color: white;
+	left: 200px;
+	top: 500px;
+	height:200px;
+	width: 200px;
+	clip-path: circle(100px);
+}
+.pain{
+	position:absolute;
+	height:200px;
+	width: 200px;
+	clip-path: circle(95px);
+}
+.desc{
+	position: relative;
+	left: 340px;
+	text-align: justify;
+	text-indent: 1cm;
+	top: 260px;
+	margin-right:900px;
+	font-size: 20px;
+}
+.best{
+	position: absolute;
+	left: 670px;
+	top: 850px;
+	text-decoration: overline;
+}
+.bestPistachio{
+	position:absolute;
+	height: 500px;
+	width: 300px;
+	top: 930px;
+	left: 200px;
+	box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.5);
+}
+.bestPistachio:hover,.bestButter:hover,.bestNutella:hover{
+	transform: scale(1.1);	
+}
+.bestPistachio,.bestButter,.bestNutella{
+	transition: transform 0.3s ease-in-out;
+}
+.bestButter{
+	position:absolute;
+	height: 500px;
+	width: 300px;
+	top: 930px;
+	left: 630px;
+	box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.5);
+}
+.bestNutella{
+	position:absolute;
+	height: 500px;
+	width: 300px;
+	top: 930px;
+	left: 1050px;
+	box-shadow: 5px 10px 20px rgba(0, 0, 0, 0.5);
+}
+.fblogo{
+	position: absolute;
+	height:40px;
+	width: 40px;
+	top:770px;
+	left: 580px;
+}
+.instalogo{
+	position: absolute;
+	height:40px;
+	width:50x;
+	top:810px;
+	left: 565px;
+}
+.copy{
+	position: absolute;
+	left: 300px;
+	top: 765px;
+}
+.footerbg{
+	position: absolute;
+	top: 1500px;
+	width:1500px;
+	height:240px;
+}
+.footerdetails{
+	position: absolute;
+	height:200px;
+	width: 1500px;
+	top: 640px;
+}
+.fblogo{
+	position: absolute;
+	height:40px;
+	width: 40px;
+	top:1040px;
+	left: 1160px;
+}
+.instalogo{
+	position: absolute;
+	height:40px;
+	width:50x;
+	top:1040px;
+	left: 1100px;
+}
+.copy{
+	position: absolute;
+	left: 200px;
+	top: 1040px;
+}
+.contdet{
+	position: absolute;
+	left: 200px;
+	top: 860px;
+}
+.MessIcon{
+	position: absolute;
+	left: 200px;
+	top: 915px;
+	height:20px;
+	width: 25px;
+}
+.email{
+	position: absolute;
+	left: 230px;
+	top: 900px;	
+}
+.locIcon{
+	position: absolute;
+	left: 200px;
+	top: 940px;
+	height:25px;
+	width: 25px;
+}
+.location{
+	position: absolute;
+	left: 230px;
+	top: 930px;
+}
+.ForOrders{
+ 	position: absolute;
+	left: 200px;
+	top: 960px;
+}
+.mobphoneIcon{
+	position: absolute;
+	left: 200px;
+	top: 1010px;
+	height:25px;
+	width: 25px;
+}
+.mobphone{
+	position: absolute;
+	left: 230px;
+	top: 1000px;	
+}
+.black{
+	Position :fixed ;
+	Height: 1000px;
+	Width: 1500px;
+	Background-color: black ;
+	Opacity :0.7;
+	top: 0px;	
+}
+.imageclick1{
+	Position:fixed ;
+	Top: 140px;
+	Left: 300px;
+	height: 500px;
+	width: 300px;
+}
+.bestPistachiolabel{
+	Position: fixed;
+	left: 620px;
+	top: 260px;
+	color: white;
+	font-size:20px;
+}
+.bestDesc{
+	position: fixed;
+	left: 620px;
+	text-align: justify;
+	text-indent: 1cm;
+	top: 320px;
+	margin-right:400px;
+	color: white;
+}
+.exit{
+	Position: fixed;
+	left:1250px;
+	top: 100;
+	color: white;
+	font-size:20px;
+}
+.next{
+	Position: fixed;
+	left:1250px;
+	top:320px;
+	color: white;
+	font-size:40px;
+}
+.prev{
+	Position: fixed;
+	left:150px;
+	top:320px;
+	color: white;
+	font-size:40px;
+}
+
+
+
+
+	

@@ -1,0 +1,114 @@
+.pastryybg{
+	position:absolute;
+	width: 1500px;
+	clip: rect(0px,2000px, 180px, 0px);
+}
+.lacroissant2{
+	position:absolute; 
+	height: 400px;
+	width:500px;
+	top: -80px;
+	left: 0px;
+}
+.navhome{
+	position: absolute;
+	left: 870px;
+	top:85px;
+	
+}
+.navpastry{
+	position: absolute;
+	left: 1030px;
+	top: 85px;	
+}
+.navaboutus{
+	position: relative;
+	left: 1180px;
+	top: 97px;
+}
+.logout{
+	position: relative;
+	left: 1350px;
+	top: 55px;
+}
+.backIcon{
+	position:absolute;
+	height:30px;
+	width: 30px;
+	top:250px;
+	left: 40px;
+	cursor: pointer;
+}
+.orderform{
+	position: absolute;
+	top: 300px;
+	left: 990px;
+}
+.yourcart{
+	font-family: 'Open Sans ', sans-serif ;
+}
+.orderbg{
+	position: absolute;
+	clip: rect(0px,350px,400px, 50px);
+	top: 300px;
+	left: 880px;
+
+}
+.menu1{
+	position: absolute;
+	height: 400px;
+	width: 400px;
+	left: 100px;
+	top: 300px;	
+	border: 1px solid black;
+}
+.label1{
+	position: absolute;
+	left: 520px;
+	top: 360px;
+	font-family: 'Open Sans ', sans-serif ;
+	font-size: 20px;
+}
+.price1{
+	position: absolute;
+	left: 525px;
+	top: 390px;
+	font-size: 20px;
+}
+.btn1{
+	position:absolute;
+    font-size: 20px;
+    cursor: pointer;
+	top:455px;
+	left: 520px;
+}
+.btn2{
+	position:absolute;
+    font-size: 20px;
+    cursor: pointer;
+	top:455px;
+	left: 600px;
+}
+.value-btn {
+	position:absolute;
+    font-size: 20px;
+	top:450px;
+	left: 550px;
+    font-size: 24px;
+    margin: 0px;
+    cursor: default;
+}
+.desc1{
+	position: relative;
+	left: 520px;
+	text-align: justify;
+	text-indent: 1cm;
+	top: 450px;
+	margin-right:1150px;
+	font-size: 15px;
+}
+.ingredients{
+	position: absolute;
+	left: 1280px;
+	top: 290px;
+}

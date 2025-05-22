@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<products>
+  <product>
+    <name>Chocolate Donut</name>
+    <description>Delicious chocolate glazed donut</description>
+    <type>Donut</type>
+    <price>2.50</price>
+    <quantity>10</quantity>
+    <tags>chocolate,sweet</tags>
+    <image>choco.jpg</image>
+  </product>
+</products>

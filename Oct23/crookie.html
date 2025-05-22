@@ -1,0 +1,185 @@
+<html>
+	<head>
+		 <link rel = "stylesheet" href = "menucss.css">
+	</head>
+	
+	<body>
+			
+		<div>
+		
+			<img src="C:\Users\jamil\Desktop\Oct23\homebg.png" class="pastryybg">
+			
+		
+		    <img src="C:\Users\jamil\Desktop\Oct23\lacroissant.png" class="lacroissant2">
+			
+			
+			<h4 class="navhome"><a href="home2.html"> HOME </a> </h4>
+			<h4 class="navpastry"><a href="pastryy2.html"> MENU </a> </h4>
+			<h4 class="navaboutus"><a href="aboutUs2.html">ABOUT US</a> </h4>
+			<h4 class="logout"> <a href="homepage.html">LOG OUT </a></h4>
+		
+		</div>
+			
+			<img src="C:\Users\jamil\Desktop\Oct23\backIcon.png" class="backIcon" id="backbutton">
+					
+			<img src="C:\Users\jamil\Desktop\Oct23\homebg.png" class="orderbg">
+			
+			<img src="C:\Users\jamil\Desktop\Oct23\menu4.png" class="menu1">
+			<p class="label1"> CROOKIE CROISSANT </p>
+			<p class="price1"> ₱ 280.00 </p>
+			
+			<p class="desc1"> The Crookie Croissant is a delightful fusion of a classic croissant and a cookie.
+			With its flaky, buttery layers and a rich cookie dough filling, this unique pastry offers a perfect 
+			balance of crispiness and sweet indulgence.&#x1F950; </p>
+			
+			
+			<button class="btn1" onclick="decrement()"> - </button>
+			<button class="value-btn" id="value"> 1 </button>
+			<button class="btn2" onclick="increment()"> + </button>
+	
+	
+			
+	 <form class="orderform">
+	 
+		
+        <h2 class="yourcart"> Your Cart </h2>
+        
+        <label for="name">Name:</label><br>
+        <input type="text" id="name" name="name" required><br><br>
+
+        <label for="address">Address:</label><br>
+        <input type="text" id="address" name="address" required><br><br>
+
+        <label for="price">Price:</label><br>
+        <input type="text" id="price" value="280" disabled><br><br> 
+
+        <label for="Product">Product:</label><br>
+        <input type="text" id="Product" value="Crookie" disabled><br><br> 
+
+        <label for="payment">Payment:</label><br>
+        <input type="number" id="payment" name="payment" required><br><br>
+		
+
+        <button type="button" onclick="placeOrder()"> Place Order </button><br><br>
+		
+    </form>
+
+				<div>
+        <fieldset class="ingredients">
+            <legend>INGREDIENTS</legend>
+            <form>
+              <input type="checkbox" id="Cdough" name="ingredients" checked >
+              <label for="dough">Croissant Dough</label><br>
+          
+              <input type="checkbox" id="cbutter" name="ingredients" disabled >
+              <label for="butter">Butter</label><br>
+          
+              <input type="checkbox" id="ccream" name="ingredients" disabled >
+              <label for="cream">Pistachio Cream</label><br>
+          
+              <input type="checkbox" id="cnutella" name="ingredients" disabled>
+              <label for="nutella">Nutella</label><br>
+          
+              <input type="checkbox" id="cchocolatechip" name="ingredients" checked>
+              <label for="chocolatechip">Chocolate chip cookie</label><br>
+          
+              <input type="checkbox" id="cbrownie" name="ingredients"disabled>
+              <label for="brownie">Brownie filling</label><br>
+          
+              <input type="checkbox" id="cbisoff" name="ingredients"disabled>
+              <label for="biscoff">Lotus/Biscoff cookie</label><br>
+          				  
+
+			  <input type="checkbox" id="ccrushednut" name="ingredients"disabled >
+              <label for="crushednut">Crushed Nuts</label><br>
+			  
+			  
+			  <input type="checkbox" id="cpistachio" name="ingredients"disabled >
+              <label for="Pistachio">Crushed Pistachio</label><br>
+			  
+			  <input type="checkbox" id="ccrushedcookie" name="ingredients"disabled>
+              <label for="crushedcookie">Crushed Cookies</label><br>
+			 
+			  
+			  <input type="checkbox" id="cwholeookie" name="ingredients"disabled>
+              <label for="wholecookie">Whole Cookies</label><br>
+                 
+              <input type="checkbox" id="cchocolatedriz" name="ingredients"disabled>
+              <label for="chocolatedriz">Chocolate Drizzle</label><br>
+			  
+			   <input type="checkbox" id="cwhitechocolatedriz" name="ingredients"disabled>
+              <label for="whitechocolatedriz">White Chocolate Drizzle</label><br>
+			  			  
+              <input type="checkbox" id="cchocochips" name="ingredients"checked>
+              <label for="chocochips">Chocolate Chips</label><br>
+          
+              
+            </form>
+          </fieldset>
+    </div>
+	
+	<script>
+	
+			 document.getElementById("backbutton").onclick = function() {
+            window.location.href = "pastryy2.html";
+        };
+		
+		  
+        var currentValue = 1;
+        var pricePerItem = 280;
+        var value = document.getElementById("value");
+        var price= document.getElementById("price");
+
+       
+        function updatePrice() {
+            var totalPrice = currentValue * pricePerItem;
+            value.textContent = currentValue;
+            price.value = totalPrice;
+            priceDisplay.textContent = "₱ {totalPrice}.00";
+        }
+
+        function decrement() {
+            if (currentValue > 1) {
+                currentValue--; 
+                updatePrice();
+            }
+        }
+
+        function increment() {
+            currentValue++; 
+            updatePrice();
+        }
+
+        function placeOrder() {
+            var name = document.getElementById("name").value;
+            var address = document.getElementById("address").value;
+            var price = currentValue * pricePerItem; 
+            var payment = document.getElementById("payment").value;
+            var product = document.getElementById("Product").value;
+			var quantity = currentValue;
+
+            if (payment >= price) {
+                var change = payment - price;
+
+                alert(
+                    "Order Summary:\n" +
+                    "Name: " + name + "\n" +
+                    "Address: " + address + "\n" +
+                    "Product: " + product + "\n" +
+					"Quantity: " + quantity + "\n" +
+                    "Total Price: ₱" + price + "\n" +
+                    "Payment: ₱" + payment + "\n" +
+                    "Change: ₱" + change
+                );
+            } else {
+                alert("Insufficient payment. Please enter a valid amount.");
+            }
+        }
+		
+		
+	</script>
+	
+	
+	</body>	
+			
+</html>

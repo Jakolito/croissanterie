@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<transactions>
+  <transaction id="TRANS17478340918002" order_id="order_821fb83e7caabe" user_id="gian" date="2025-05-21 15:28:11">
+    <payment_method>gcash</payment_method>
+    <total_amount>728</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff GONZALES</name>
+      <address>12321</address>
+      <phone>123</phone>
+      <email>123@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p001">
+        <name>Vanilla Bean Strawberry Bliss</name>
+        <price>650</price>
+        <quantity>1</quantity>
+        <total>650</total>
+        <image>uploads/pic1.png</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17478396555550" order_id="order_c5e42683a1aabe" user_id="gian" date="2025-05-21 17:00:55">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>pending</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff GONZALES</name>
+      <address>Pampanga</address>
+      <phone>09311226307</phone>
+      <email>jeffGONZALES@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p002">
+        <name>Cherry Blossom Bun</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/d2.jpg</image>
+      </item>
+    </items>
+  </transaction>
+</transactions>

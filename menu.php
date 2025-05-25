@@ -306,7 +306,7 @@ sort($categories);
         }
         
         .product-image {
-            height: 200px;
+            height: 380px;
             width: 100%;
             object-fit: cover;
         }

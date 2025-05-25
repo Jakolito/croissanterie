@@ -273,7 +273,7 @@
     
     .product-image {
       width: 100%;
-      height: 180px;
+      height: 280px;
       object-fit: cover;
     }
     
@@ -432,13 +432,13 @@
 <!-- Slideshow -->
 <div class="slideshow-container">
   <div class="slide active">
-    <img src="uploads/slide1.png" alt="Strawberry Vanilla Bean Bliss">
+    <img src="uploads/slide1.jpg" alt="Strawberry Vanilla Bean Bliss">
   </div>
   <div class="slide">
-    <img src="uploads/slide2.png" alt="Red Velvent Messy Bun">
+    <img src="uploads/slide2.jpg" alt="Red Velvent Messy Bun">
   </div>
   <div class="slide">
-    <img src="uploads/slide3.png" alt="Brookie Pizza">
+    <img src="uploads/slide3.jpg" alt="Brookie Pizza">
   </div>
 </div>
 

@@ -29,44 +29,17 @@ function formatXML($xml) {
     return $dom->saveXML();
 }
 
-// Function to safely save XML with error handling
-function saveXMLSafely($filePath, $xmlContent) {
-    try {
-        // Create backup of existing file
-        if (file_exists($filePath)) {
-            copy($filePath, $filePath . '.backup');
-        }
-        
-        // Attempt to save
-        $result = file_put_contents($filePath, $xmlContent, LOCK_EX);
-        
-        if ($result === false) {
-            error_log("Failed to save XML to: " . $filePath);
-            return false;
-        }
-        
-        return true;
-    } catch (Exception $e) {
-        error_log("Error saving XML: " . $e->getMessage());
-        return false;
-    }
-}
-
 // Create or load the transactions XML file
 if (!file_exists($transactionsXmlPath)) {
     $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-    if (!saveXMLSafely($transactionsXmlPath, formatXML($transactionsXml))) {
-        die("Error: Cannot create transactions file. Please check file permissions.");
-    }
+    file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
 } else {
     // Try to load the file, if it fails, create a new one
     $transactionsXml = @simplexml_load_file($transactionsXmlPath);
     if ($transactionsXml === false) {
         // File exists but is invalid, recreate it
         $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-        if (!saveXMLSafely($transactionsXmlPath, formatXML($transactionsXml))) {
-            die("Error: Cannot recreate transactions file. Please check file permissions.");
-        }
+        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
     }
 }
 
@@ -74,23 +47,17 @@ if (!file_exists($transactionsXmlPath)) {
 $pastries = [];
 if (file_exists($xmlPath)) {
     $file = simplexml_load_file($xmlPath);
-    if ($file !== false) {
-        foreach ($file->pastry as $row) {
-            // Add ID if it doesn't exist
-            if (!isset($row['id'])) {
-                $row->addAttribute('id', uniqid());
-            }
-            $pastries[(string)$row['id']] = $row;
+    foreach ($file->pastry as $row) {
+        // Add ID if it doesn't exist
+        if (!isset($row['id'])) {
+            $row->addAttribute('id', uniqid());
         }
+        $pastries[(string)$row['id']] = $row;
     }
 }
 
 // Load cart data
-$cartsXml = @simplexml_load_file($cartXmlPath);
-if ($cartsXml === false) {
-    die("Error: Cannot load cart file.");
-}
-
+$cartsXml = simplexml_load_file($cartXmlPath);
 $userCart = null;
 foreach ($cartsXml->cart as $cart) {
     if ((string)$cart['user_id'] === $user_id) {
@@ -165,172 +132,122 @@ $transaction_id = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['process_payment'])) {
-        // Debug: Log the POST data
-        error_log("Processing payment with data: " . print_r($_POST, true));
-        
         $payment_method = $_POST['payment_method'];
         
         // Get customer details from form
-        $customer_name = htmlspecialchars(trim($_POST['customer_name']));
-        $customer_address = htmlspecialchars(trim($_POST['customer_address']));
-        $customer_phone = htmlspecialchars(trim($_POST['customer_phone']));
-        $customer_email = htmlspecialchars(trim($_POST['customer_email']));
-        $delivery_notes = htmlspecialchars(trim($_POST['delivery_notes']));
-        
-        // Validate required fields
-        if (empty($customer_name) || empty($customer_address) || empty($customer_phone) || empty($customer_email)) {
-            die("Error: All required fields must be filled.");
-        }
-        
-        // Check if checkout items exist
-        if (empty($checkoutItems)) {
-            die("Error: No items to checkout.");
-        }
+        $customer_name = $_POST['customer_name'];
+        $customer_address = $_POST['customer_address'];
+        $customer_phone = $_POST['customer_phone'];
+        $customer_email = $_POST['customer_email'];
+        $delivery_notes = $_POST['delivery_notes'];
         
         // Generate transaction ID
         $transaction_id = 'TRANS' . time() . rand(1000, 9999);
         
-        try {
-            // Reload transactions XML to ensure we have the latest version
-            $transactionsXml = @simplexml_load_file($transactionsXmlPath);
-            if ($transactionsXml === false) {
-                $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-            }
+        // Create new transaction record in XML
+        $transaction = $transactionsXml->addChild('transaction');
+        $transaction->addAttribute('id', $transaction_id);
+        $transaction->addAttribute('order_id', $order_id);
+        $transaction->addAttribute('user_id', $user_id);
+        $transaction->addAttribute('date', date('Y-m-d H:i:s'));
+        
+        // Add transaction details
+        $transaction->addChild('payment_method', $payment_method);
+        $transaction->addChild('total_amount', $total);
+        $transaction->addChild('status', 'pending'); // This is already correct - ensure status is "pending"
+        $transaction->addChild('payment_status', 'paid'); // Add a separate payment status field
+        
+        // Add customer details to transaction
+        $customer = $transaction->addChild('customer');
+        $customer->addChild('name', $customer_name);
+        $customer->addChild('address', $customer_address);
+        $customer->addChild('phone', $customer_phone);
+        $customer->addChild('email', $customer_email);
+        $customer->addChild('delivery_notes', $delivery_notes);
+        
+        // Add items to transaction
+        $items = $transaction->addChild('items');
+        foreach ($checkoutItems as $item) {
+            $transItem = $items->addChild('item');
+            $transItem->addAttribute('product_id', $item['id']);
             
-            // Create new transaction record in XML
-            $transaction = $transactionsXml->addChild('transaction');
-            $transaction->addAttribute('id', $transaction_id);
-            $transaction->addAttribute('order_id', $order_id);
-            $transaction->addAttribute('user_id', $user_id);
-            $transaction->addAttribute('date', date('Y-m-d H:i:s'));
+            // Add complete item details including name, price, quantity, total and image
+            $transItem->addChild('name', $item['name']);
+            $transItem->addChild('price', $item['price']);
+            $transItem->addChild('quantity', $item['quantity']);
+            $transItem->addChild('total', $item['total']);
+            $transItem->addChild('image', $item['image']);
+        }
+        
+        // Save transaction to XML file with proper formatting
+        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+        
+        // Remove purchased items from cart
+        if ($userCart !== null) {
+            // Create a copy of items to iterate through
+            $itemsToRemove = [];
             
-            // Add transaction details
-            $transaction->addChild('payment_method', $payment_method);
-            $transaction->addChild('total_amount', number_format($total, 2, '.', ''));
-            $transaction->addChild('status', 'pending');
-            $transaction->addChild('payment_status', 'paid');
-            
-            // Add customer details to transaction  
-            $customer = $transaction->addChild('customer');
-            $customer->addChild('name', $customer_name);
-            $customer->addChild('address', $customer_address);
-            $customer->addChild('phone', $customer_phone);
-            $customer->addChild('email', $customer_email);
-            $customer->addChild('delivery_notes', $delivery_notes);
-            
-            // Add items to transaction
-            $items = $transaction->addChild('items');
-            foreach ($checkoutItems as $item) {
-                $transItem = $items->addChild('item');
-                $transItem->addAttribute('product_id', $item['id']);
+            foreach ($userCart->item as $index => $item) {
+                $product_id = (string)$item['product_id'];
                 
-                // Add complete item details
-                $transItem->addChild('name', $item['name']);
-                $transItem->addChild('price', number_format($item['price'], 2, '.', ''));
-                $transItem->addChild('quantity', $item['quantity']);
-                $transItem->addChild('total', number_format($item['total'], 2, '.', ''));
-                $transItem->addChild('image', $item['image']);
-            }
-            
-            // Save transaction to XML file with proper formatting
-            $formattedXML = formatXML($transactionsXml);
-            if (!saveXMLSafely($transactionsXmlPath, $formattedXML)) {
-                throw new Exception("Failed to save transaction to file");
-            }
-            
-            // Debug: Log successful save
-            error_log("Transaction saved successfully: " . $transaction_id);
-            
-            // Remove purchased items from cart
-            if ($userCart !== null) {
-                // Reload cart XML to ensure we have the latest version
-                $cartsXml = @simplexml_load_file($cartXmlPath);
-                if ($cartsXml !== false) {
-                    // Find user cart again
-                    $userCart = null;
-                    foreach ($cartsXml->cart as $cart) {
-                        if ((string)$cart['user_id'] === $user_id) {
-                            $userCart = $cart;
+                // Skip if product doesn't exist in products XML
+                if (!isset($pastries[$product_id])) {
+                    continue;
+                }
+                
+                // Check if item should be removed
+                $shouldRemove = false;
+                
+                if ($isSelectedCheckout) {
+                    // If doing selected checkout, only remove items that were selected
+                    if (in_array($product_id, $selectedItems)) {
+                        $shouldRemove = true;
+                    }
+                } else {
+                    // If doing "checkout all", remove all items that are in checkout
+                    foreach ($checkoutItems as $checkoutItem) {
+                        if ($checkoutItem['id'] === $product_id) {
+                            $shouldRemove = true;
                             break;
                         }
                     }
-                    
-                    if ($userCart !== null) {
-                        // Create a copy of items to iterate through
-                        $itemsToRemove = [];
-                        
-                        foreach ($userCart->item as $index => $item) {
-                            $product_id = (string)$item['product_id'];
-                            
-                            // Skip if product doesn't exist in products XML
-                            if (!isset($pastries[$product_id])) {
-                                continue;
-                            }
-                            
-                            // Check if item should be removed
-                            $shouldRemove = false;
-                            
-                            if ($isSelectedCheckout) {
-                                // If doing selected checkout, only remove items that were selected
-                                if (in_array($product_id, $selectedItems)) {
-                                    $shouldRemove = true;
-                                }
-                            } else {
-                                // If doing "checkout all", remove all items that are in checkout
-                                foreach ($checkoutItems as $checkoutItem) {
-                                    if ($checkoutItem['id'] === $product_id) {
-                                        $shouldRemove = true;
-                                        break;
-                                    }
-                                }
-                            }
-                            
-                            if ($shouldRemove) {
-                                $itemsToRemove[] = $item;
-                            }
-                        }
-                        
-                        // Now remove the items
-                        foreach ($itemsToRemove as $itemToRemove) {
-                            $dom = dom_import_simplexml($itemToRemove);
-                            $dom->parentNode->removeChild($dom);
-                        }
-                        
-                        // Save changes to cart XML file with proper formatting
-                        if (!saveXMLSafely($cartXmlPath, formatXML($cartsXml))) {
-                            error_log("Warning: Failed to update cart after checkout");
-                        }
-                    }
+                }
+                
+                if ($shouldRemove) {
+                    $itemsToRemove[] = $item;
                 }
             }
             
-            // Clear selected items session
-            if (isset($_SESSION['selected_items'])) {
-                unset($_SESSION['selected_items']);
+            // Now remove the items
+            foreach ($itemsToRemove as $itemToRemove) {
+                $dom = dom_import_simplexml($itemToRemove);
+                $dom->parentNode->removeChild($dom);
             }
             
-            // Set payment success flag
-            $paymentSuccess = true;
-            
-            // Store order details in session for confirmation page
+            // Save changes to cart XML file with proper formatting
+            file_put_contents($cartXmlPath, formatXML($cartsXml));
+        }
+        
+        // Clear selected items session
+        if (isset($_SESSION['selected_items'])) {
+            unset($_SESSION['selected_items']);
+        }
+        
+        // Set payment success flag
+        $paymentSuccess = true;
+        
+        // Redirect to confirmation page or display confirmation
+        if ($payment_method === 'gcash') {
+            // Show GCash payment screen
             $_SESSION['order_id'] = $order_id;
             $_SESSION['total_amount'] = $total;
             $_SESSION['transaction_id'] = $transaction_id;
-            
-            // Redirect based on payment method
-            if ($payment_method === 'gcash') {
-                // Show GCash payment screen
-                header("Location: gcash_payment.php");
-                exit();
-            } else {
-                // Redirect to confirmation page
-                header("Location: order_confirmation.php?order_id=" . $order_id);
-                exit();
-            }
-            
-        } catch (Exception $e) {
-            error_log("Error processing checkout: " . $e->getMessage());
-            die("Error processing your order. Please try again. Error: " . $e->getMessage());
+            header("Location: gcash_payment.php");
+            exit();
+        } else {
+            // Redirect to confirmation page
+            header("Location: order_confirmation.php?order_id=" . $order_id);
+            exit();
         }
     }
 }
@@ -598,15 +515,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: #e74c3c;
             margin-left: 4px;
         }
-
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            padding: 10px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            border: 1px solid #f5c6cb;
-        }
     </style>
    
 </head>
@@ -766,7 +674,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 <!-- Step 2: Payment & Summary -->
                 <div id="step2" class="checkout-step">
-                    <!-- Payment Method Section -->
+                    <!-- Payment Information Section -->
                     <div class="checkout-section">
                         <h2 class="checkout-section-title">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -777,306 +685,186 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </h2>
                         
                         <div class="payment-methods">
-                            <div class="payment-method" onclick="selectPayment('cod')">
-                                <input type="radio" name="payment_method" value="cod" id="cod" required>
-                                <div class="payment-method-logo">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <line x1="12" y1="1" x2="12" y2="23"></line>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                                    </svg>
-                                </div>
-                                <div class="payment-method-details">
-                                    <div class="payment-method-name">Cash on Delivery</div>
-                                    <div class="payment-method-description">Pay when your order arrives</div>
-                                </div>
-                            </div>
-                            
-                            <div class="payment-method" onclick="selectPayment('gcash')">
-                                <input type="radio" name="payment_method" value="gcash" id="gcash" required>
-                                <div class="payment-method-logo">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M21 12c0 1.66-1.34 3-3 3H6c-1.66 0-3-1.34-3-3s1.34-3 3-3h12c1.66 0 3 1.34 3 3z"></path>
-                                        <path d="M7 12h10"></path>
-                                    </svg>
-                                </div>
+                            <div class="payment-method" data-method="gcash">
+                                <input type="radio" name="payment_method" id="gcash" value="gcash" checked>
+                                <img src="gcash_logo.png" alt="GCash" class="payment-method-logo" onerror="this.src='https://placeholder.pics/svg/40x40/3498DB/FFFFFF/GCash'">
                                 <div class="payment-method-details">
                                     <div class="payment-method-name">GCash</div>
-                                    <div class="payment-method-description">Pay securely with GCash</div>
+                                    <div class="payment-method-description">Pay securely with your GCash account</div>
                                 </div>
                             </div>
                             
-                            <div class="payment-method" onclick="selectPayment('card')">
-                                <input type="radio" name="payment_method" value="card" id="card" required>
-                                <div class="payment-method-logo">
-                                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-                                        <line x1="1" y1="10" x2="23" y2="10"></line>
-                                    </svg>
-                                </div>
-                                <div class="payment-method-details">
-                                    <div class="payment-method-name">Credit/Debit Card</div>
-                                    <div class="payment-method-description">Visa, Mastercard, and more</div>
-                                </div>
-                            </div>
+                            
                         </div>
                     </div>
                     
-                    <!-- Order Summary Section -->
+                    <!-- Order Summary -->
                     <div class="checkout-section">
                         <h2 class="checkout-section-title">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M9 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2h-4"></path>
-                                <path d="M9 11V7a3 3 0 0 1 6 0v4"></path>
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
                             </svg>
                             Order Summary
                         </h2>
                         
-                        <div class="order-summary-details">
+                        <div class="cart-summary" style="margin-top: 20px;">
                             <div class="summary-row">
-                                <span>Order ID:</span>
-                                <span><?php echo $order_id; ?></span>
-                            </div>
-                            <div class="summary-row">
-                                <span>Items:</span>
-                                <span><?php echo $totalItems; ?> item(s)</span>
-                            </div>
-                            <div class="summary-row">
-                                <span>Subtotal:</span>
+                                <span>Items (<?php echo $totalItems; ?>)</span>
                                 <span>₱<?php echo number_format($subtotal, 2); ?></span>
                             </div>
                             <div class="summary-row">
-                                <span>Tax (12%):</span>
+                                <span>Tax (12%)</span>
                                 <span>₱<?php echo number_format($tax, 2); ?></span>
                             </div>
                             <div class="summary-row total">
-                                <span><strong>Total Amount:</strong></span>
-                                <span><strong>₱<?php echo number_format($total, 2); ?></strong></span>
+                                <span>Total</span>
+                                <span>₱<?php echo number_format($total, 2); ?></span>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="form-actions">
-                        <button type="button" class="btn secondary-btn prev-step" onclick="prevStep()" style="width: 48%; margin-right: 4%;">Back</button>
-                        <button type="submit" name="process_payment" class="btn primary-btn" style="width: 48%;">Place Order</button>
-                    </div>
+                    <input type="hidden" name="order_id" value="<?php echo $order_id; ?>">
+                    <button type="submit" name="process_payment" class="btn primary-btn" style="width: 100%; padding: 12px; margin-top: 20px;">Place Order</button>
+                    <button type="button" class="btn secondary-btn prev-step" onclick="prevStep()" style="width: 100%; padding: 12px; margin-top: 10px;">Back to Information</button>
                 </div>
             </form>
         </div>
     </div>
+    
+    <script>
+    function nextStep() {
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+    }
+    
+    function prevStep() {
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step1').classList.add('active');
+    }
+    </script>
+    
+    <style>
+    .checkout-step {
+        display: none;
+    }
+    
+    .checkout-step.active {
+        display: block;
+    }
+    </style>
+    
     <?php endif; ?>
 </div>
+<!-- Logout Confirmation Modal -->
+<div class="modal" id="logoutModal">
+  <div class="modal-content logout-modal-content">
+    <span class="modal-close" id="closeLogoutModal">&times;</span>
+    <div class="logout-modal-body">
+      <h3>Confirm Logout</h3>
+      <p>Are you sure you want to logout?</p>
+      <div class="logout-modal-buttons">
+        <button class="cancel-btn" id="cancelLogout">Cancel</button>
+        <button class="confirm-btn" id="confirmLogout">Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
+<footer>
+  <div class="footer-content">
+    <div class="footer-section">
+      <h3>La Croissanterie</h3>
+      <p>Quality baked goods made with love and care. Bringing Japanese-inspired treats to your neighborhood.</p>
+    </div>
+    <div class="footer-section">
+      <h3>Quick Links</h3>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Products</a></li>
+        <li><a href="#">Franchising</a></li>
+        <li><a href="#">Contact Us</a></li>
+      </ul>
+    </div>
+    <div class="footer-section">
+      <h3>Contact</h3>
+      <ul>
+        <li>Email: info@pogishop.com</li>
+        <li>Phone: +63 123 456 7890</li>
+        <li>Address: 123 Bakery Street, Manila</li>
+      </ul>
+    </div>
+  </div>
+  <div class="copyright">
+    &copy; 2025 Pogi Shop. All rights reserved.
+  </div>
+</footer>
 
 <script>
-// Cart functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // Profile dropdown
+    // Initialize payment method selection
+    const paymentMethods = document.querySelectorAll('.payment-method');
+    
+    paymentMethods.forEach(method => {
+        method.addEventListener('click', function() {
+            // Remove selected class from all methods
+            paymentMethods.forEach(m => m.classList.remove('selected'));
+            
+            // Add selected class to clicked method
+            this.classList.add('selected');
+            
+            // Check the radio button
+            const radio = this.querySelector('input[type="radio"]');
+            radio.checked = true;
+        });
+    });
+    
+    // Initially select the first payment method
+    paymentMethods[0].classList.add('selected');
+    
+    // Initialize profile dropdown functionality
     const profileDropdown = document.getElementById('profileDropdown');
     const profileMenu = document.getElementById('profileMenu');
     
-    if (profileDropdown) {
-        profileDropdown.addEventListener('click', function(e) {
-            e.preventDefault();
-            profileMenu.classList.toggle('active');
-        });
-    }
+    profileDropdown.addEventListener('click', () => {
+        profileMenu.classList.toggle('show');
+    });
     
     // Close dropdown when clicking outside
-    document.addEventListener('click', function(e) {
-        if (profileMenu && !profileDropdown.contains(e.target)) {
-            profileMenu.classList.remove('active');
+    window.addEventListener('click', (e) => {
+        if (!e.target.closest('.profile-dropdown')) {
+            profileMenu.classList.remove('show');
         }
     });
     
-    // Form validation
-    const form = document.getElementById('checkoutForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            const requiredFields = form.querySelectorAll('[required]');
-            let isValid = true;
-            
-            requiredFields.forEach(field => {
-                if (!field.value.trim()) {
-                    isValid = false;
-                    field.style.borderColor = '#e74c3c';
-                } else {
-                    field.style.borderColor = '#ddd';
-                }
-            });
-            
-            if (!isValid) {
-                e.preventDefault();
-                alert('Please fill in all required fields.');
-                return false;
-            }
-            
-            // Check if payment method is selected
-            const paymentMethod = document.querySelector('input[name="payment_method"]:checked');
-            if (!paymentMethod) {
-                e.preventDefault();
-                alert('Please select a payment method.');
-                return false;
-            }
-        });
-    }
-});
-
-// Multi-step checkout functions
-function nextStep() {
-    // Validate step 1 fields
-    const step1Fields = document.querySelectorAll('#step1 [required]');
-    let isValid = true;
+    // Initialize logout modal functionality
+    const logoutBtn = document.getElementById('logoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const closeLogoutModal = document.getElementById('closeLogoutModal');
+    const cancelLogout = document.getElementById('cancelLogout');
+    const confirmLogout = document.getElementById('confirmLogout');
     
-    step1Fields.forEach(field => {
-        if (!field.value.trim()) {
-            isValid = false;
-            field.style.borderColor = '#e74c3c';
-            field.focus();
-        } else {
-            field.style.borderColor = '#ddd';
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        logoutModal.classList.add('show');
+    });
+    
+    closeLogoutModal.addEventListener('click', () => {
+        logoutModal.classList.remove('show');
+    });
+    
+    cancelLogout.addEventListener('click', () => {
+        logoutModal.classList.remove('show');
+    });
+    
+    confirmLogout.addEventListener('click', () => {
+        window.location.href = 'homepage.php';
+    });
+    
+    // Close modal when clicking outside
+    logoutModal.addEventListener('click', (e) => {
+        if (e.target === logoutModal) {
+            logoutModal.classList.remove('show');
         }
     });
-    
-    if (!isValid) {
-        alert('Please fill in all required fields before proceeding.');
-        return;
-    }
-    
-    // Email validation
-    const email = document.getElementById('customerEmail');
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.value)) {
-        alert('Please enter a valid email address.');
-        email.style.borderColor = '#e74c3c';
-        email.focus();
-        return;
-    }
-    
-    // Phone validation (basic)
-    const phone = document.getElementById('customerPhone');
-    const phoneRegex = /^(\+63|0)[0-9]{10}$/;
-    if (!phoneRegex.test(phone.value.replace(/[-\s]/g, ''))) {
-        alert('Please enter a valid Philippine phone number.');
-        phone.style.borderColor = '#e74c3c';
-        phone.focus();
-        return;
-    }
-    
-    // Hide step 1, show step 2
-    document.getElementById('step1').style.display = 'none';
-    document.getElementById('step2').style.display = 'block';
-}
-
-function prevStep() {
-    // Hide step 2, show step 1
-    document.getElementById('step2').style.display = 'none';
-    document.getElementById('step1').style.display = 'block';
-}
-
-function selectPayment(method) {
-    // Remove selected class from all payment methods
-    document.querySelectorAll('.payment-method').forEach(pm => {
-        pm.classList.remove('selected');
-    });
-    
-    // Add selected class to clicked method
-    event.currentTarget.classList.add('selected');
-    
-    // Check the radio button
-    document.getElementById(method).checked = true;
-}
-
-// Phone number formatting
-document.getElementById('customerPhone').addEventListener('input', function(e) {
-    let value = e.target.value.replace(/\D/g, '');
-    if (value.startsWith('63')) {
-        value = '+' + value;
-    } else if (value.startsWith('0')) {
-        // Keep as is for local format
-    }
-    e.target.value = value;
-});
 </script>
-
-<style>
-.checkout-step {
-    display: none;
-}
-
-.checkout-step.active,
-#step1 {
-    display: block;
-}
-
-.form-actions {
-    display: flex;
-    justify-content: space-between;
-    margin-top: 30px;
-}
-
-.order-summary-details {
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 6px;
-    margin-top: 15px;
-}
-
-.summary-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 8px 0;
-    border-bottom: 1px solid #eee;
-}
-
-.summary-row:last-child {
-    border-bottom: none;
-}
-
-.summary-row.total {
-    font-size: 1.1rem;
-    font-weight: 600;
-    color: #4a6fa1;
-    border-top: 2px solid #4a6fa1;
-    padding-top: 15px;
-    margin-top: 10px;
-}
-
-.payment-method input[type="radio"] {
-    margin: 0;
-}
-
-.payment-method.selected {
-    border-color: #4a6fa1 !important;
-    background-color: #f0f5ff !important;
-}
-
-.btn.text-btn {
-    background: none;
-    border: none;
-    color: #666;
-    text-decoration: underline;
-    padding: 0;
-}
-
-.btn.text-btn:hover {
-    color: #4a6fa1;
-}
-
-@media (max-width: 768px) {
-    .form-actions {
-        flex-direction: column;
-        gap: 10px;
-    }
-    
-    .form-actions .btn {
-        width: 100% !important;
-        margin: 0 !important;
-    }
-    
-    .checkout-form {
-        padding: 20px;
-    }
-}
-</style>
-
 </body>
 </html>

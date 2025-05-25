@@ -534,7 +534,7 @@ if (isset($_POST['txtotp'])) {
                                 <li><a href="homepage.php">Home</a></li>
                                 <li><a href="#">About</a></li>
                                 <li><a href="#">Menu</a></li>
-                                <li><a href="#">Feedback</a></li>
+
                                 <li><a href="login.php">Login</a></li>
                             </ul>
                         </nav>

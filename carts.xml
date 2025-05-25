@@ -1,12 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <carts>
   <cart user_id="gian">
-    <item product_id="p005">
-      <quantity>1</quantity>
-      <image>uploads/pic5.jpg</image>
-      <name>Assorted Brookie</name>
-      <price>400</price>
-    </item>
+    
   </cart>
   <cart user_id="jonathan">
     <item product_id="p018">

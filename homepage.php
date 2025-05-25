@@ -516,56 +516,56 @@
       <name>Vanilla Bean Strawberry Bliss</name>
       <price>250</price>
       <description> "A delightful cake featuring layers of vanilla bean sponge with fresh strawberry filling, topped with vanilla buttercream."</description>
-      <image>uploads/pic1.png</image>
+      <image>uploads/pic1.jpg</image>
     </product>
     <product>
       <id>2</id>
       <name>Cherry Blossom Bun</name>
       <price>40</price>
       <description>"Soft and fluffy bun with a sweet cherry filling, decorated with pink cherry blossom motif."</description>
-      <image>uploads/pic2.png</image>
+      <image>uploads/pic2.jpg</image>
     </product>
     <product>
       <id>3</id>
       <name>Mini Floss Pillows</name>
       <price>85</price>
       <description>"Savory bite-sized pastries filled with pork floss, encased in a light, flaky pastry shell."</description>
-      <image>uploads/pic3.png</image>
+      <image>uploads/pic3.jpg</image>
     </product>
     <product>
       <id>4</id>
       <name>Mini Cheese Pillows</name>
       <price>85</price>
       <description> "Delectable mini pastries with a rich, creamy cheese filling in a buttery, flaky crust."</description>
-      <image>uploads/pic4.png</image>
+      <image>uploads/pic4.jpg</image>
     </product>
     <product>
       <id>5</id>
       <name>Assorted Brookie</name>
       <price>350</price>
       <description>"A delicious hybrid of brownies and cookies in assorted flavors, offering the perfect balance of chewy and crunchy textures."</description>
-      <image>uploads/pic5.png</image>
+      <image>uploads/pic5.jpg</image>
     </product>
     <product>
       <id>6</id>
       <name>Ube Coco Brookie Pizza </name>
       <price>350</price>
       <description>"A unique dessert pizza combining the flavors of purple yam and coconut in a brownie-cookie base, perfect for sharing."</description>
-      <image>uploads/pic6.png</image>
+      <image>uploads/pic6.jpg</image>
     </product>
     <product>
       <id>7</id>
       <name>Choco Chip Brookie Pizza</name>
       <price>350</price>
       <description>"Indulgent chocolate chip cookie-brownie fusion in pizza form, loaded with chocolate chips throughout."</description>
-      <image>uploads/pic7.png</image>
+      <image>uploads/pic7.jpg</image>
     </product>
     <product>
       <id>8</id>
       <name>Three Cheese Brookie Pizza</name>
       <price>350</price>
       <description>"Decadent brookie pizza featuring three premium cheeses blended into a sweet-savory dessert experience."</description>
-      <image>uploads/pic8.png</image>
+      <image>uploads/pic8.jpg</image>
     </product>
   </products>
   `;

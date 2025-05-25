@@ -1,576 +1,579 @@
 <?php
 session_start();
-include("connect.php");
-
-// Redirect if not logged in as admin
 if (!isset($_SESSION['admin'])) {
-    header("Location: login.php");
-    exit();
+  header("Location: login.php");
+  exit();
 }
 
-// Initialize message variables
+// Get admin information from database
+require_once 'connect.php';
+
+$admin_username = $_SESSION['admin'];
+$stmt = $conn->prepare("SELECT id, fullname, profile_picture, email FROM admin WHERE username = ?");
+$stmt->bind_param("s", $admin_username);
+$stmt->execute();
+$result = $stmt->get_result();
+
+if ($result->num_rows > 0) {
+  $row = $result->fetch_assoc();
+  $admin_id = $row['id'];
+  $admin_fullname = $row['fullname'];
+  $admin_profile = $row['profile_picture'];
+  $admin_email = $row['email'];
+} else {
+  // This shouldn't happen if session is valid, but handle gracefully
+  $admin_id = 1;
+  $admin_fullname = $admin_username;
+  $admin_profile = '';
+  $admin_email = '';
+}
+$stmt->close();
+
 $success_message = '';
 $error_message = '';
 
-// Get current admin data
-$adminUsername = $_SESSION['admin'];
-$query = "SELECT * FROM admin WHERE username = ?";
-$stmt = mysqli_prepare($conn, $query);
-mysqli_stmt_bind_param($stmt, "s", $adminUsername);
-mysqli_stmt_execute($stmt);
-$result = mysqli_stmt_get_result($stmt);
-$admin = mysqli_fetch_assoc($result);
-
-
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_admin'])) {
-    $fullname = trim($_POST['fullname']);
-    $email = trim($_POST['email']);
-    $current_password = $_POST['current_password'];
-    $new_password = $_POST['new_password'];
-    $confirm_password = $_POST['confirm_password'];
+if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
+    $update_fields = [];
+    $update_values = [];
+    $update_types = "";
     
-    // Validate required fields
-    if (empty($fullname) || empty($email)) {
-        $error_message = "Full name and email are required.";
-    } else {
-        // Check if email already exists (excluding current admin)
-        $emailCheckQuery = "SELECT id FROM admin WHERE email = ? AND id != ?";
-        $emailStmt = mysqli_prepare($conn, $emailCheckQuery);
-        mysqli_stmt_bind_param($emailStmt, "si", $email, $admin['id']);
-        mysqli_stmt_execute($emailStmt);
-        $emailResult = mysqli_stmt_get_result($emailStmt);
-        
-        if (mysqli_num_rows($emailResult) > 0) {
-            $error_message = "Email address is already in use by another admin account.";
+    // Validate and sanitize input data
+    $new_fullname = isset($_POST['fullname']) ? trim($_POST['fullname']) : '';
+    $new_email = isset($_POST['email']) ? trim($_POST['email']) : '';
+    $new_password = isset($_POST['new_password']) ? $_POST['new_password'] : '';
+    $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
+    $current_password = isset($_POST['current_password']) ? $_POST['current_password'] : '';
+    
+    // Check if fullname needs to be updated
+    if (!empty($new_fullname) && $new_fullname !== $admin_fullname) {
+        if (strlen($new_fullname) < 2) {
+            $error_message = "Full name must be at least 2 characters long.";
+        } elseif (!preg_match('/^[a-zA-Z\s\.-]+$/', $new_fullname)) {
+            $error_message = "Full name can only contain letters, spaces, dots, and hyphens.";
         } else {
-            $updateQuery = "UPDATE admin SET fullname = ?, email = ?";
-            $params = [$fullname, $email];
-            $types = "ss";
+            $update_fields[] = "fullname = ?";
+            $update_values[] = $new_fullname;
+            $update_types .= "s";
+        }
+    }
+    
+    // Check if email needs to be updated
+    if (!empty($new_email) && $new_email !== $admin_email) {
+        if (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = "Please enter a valid email address.";
+        } else {
+            // Check if email already exists for other admins
+            $stmt = $conn->prepare("SELECT id FROM admin WHERE email = ? AND id != ?");
+            $stmt->bind_param("si", $new_email, $admin_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
             
-            // Handle password change
-            if (!empty($new_password)) {
-                if (empty($current_password)) {
-                    $error_message = "Current password is required to set a new password.";
-                } elseif ($new_password !== $confirm_password) {
-                    $error_message = "New passwords do not match.";
-                } elseif (strlen($new_password) < 6) {
-                    $error_message = "New password must be at least 6 characters long.";
-                } else {
-                    // Verify current password
-                    if (!password_verify($current_password, $admin['passwords'])) {
-                        $error_message = "Current password is incorrect.";
-                    } else {
-                        // Add password to update query
-                        $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                        $updateQuery .= ", passwords = ?";
-                        $params[] = $hashed_password;
-                        $types .= "s";
-                    }
-                }
+            if ($result->num_rows > 0) {
+                $error_message = "This email is already used by another admin.";
+            } else {
+                $update_fields[] = "email = ?";
+                $update_values[] = $new_email;
+                $update_types .= "s";
             }
+            $stmt->close();
+        }
+    }
+    
+    // Handle password change
+    if (!empty($new_password)) {
+        if (empty($current_password)) {
+            $error_message = "Current password is required when changing password.";
+        } elseif ($new_password !== $confirm_password) {
+            $error_message = "New password and confirmation do not match.";
+        } elseif (strlen($new_password) < 3) {
+            $error_message = "New password must be at least 3 characters long.";
+        } else {
+            // Verify current password
+            $stmt = $conn->prepare("SELECT passwords FROM admin WHERE id = ?");
+            $stmt->bind_param("i", $admin_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            $admin_data = $result->fetch_assoc();
+            $stmt->close();
             
-            if (empty($error_message)) {
-                $updateQuery .= " WHERE id = ?";
-                $params[] = $admin['id'];
-                $types .= "i";
-                
-                $updateStmt = mysqli_prepare($conn, $updateQuery);
-                mysqli_stmt_bind_param($updateStmt, $types, ...$params);
-                
-                if (mysqli_stmt_execute($updateStmt)) {
-                    // Update session variables
-                    $_SESSION['fullname'] = $fullname;
-                    
-                    // Refresh admin data
-                    $refreshQuery = "SELECT * FROM admin WHERE id = ?";
-                    $refreshStmt = mysqli_prepare($conn, $refreshQuery);
-                    mysqli_stmt_bind_param($refreshStmt, "i", $admin['id']);
-                    mysqli_stmt_execute($refreshStmt);
-                    $refreshResult = mysqli_stmt_get_result($refreshStmt);
-                    $admin = mysqli_fetch_assoc($refreshResult);
-                    
-                    $success_message = "Admin profile updated successfully!";
-                    
-                    if (!empty($new_password)) {
-                        $success_message .= " Your password has been changed.";
-                    }
-                } else {
-                    $error_message = "Error updating admin profile. Please try again.";
-                }
-                mysqli_stmt_close($updateStmt);
+            if ($admin_data['passwords'] !== $current_password) {
+                $error_message = "Current password is incorrect.";
+            } else {
+                $update_fields[] = "passwords = ?";
+                $update_values[] = $new_password;
+                $update_types .= "s";
             }
         }
-        mysqli_stmt_close($emailStmt);
+    }
+    
+    // Execute update if there are fields to update and no errors
+    if (!empty($update_fields) && empty($error_message)) {
+        $update_query = "UPDATE admin SET " . implode(", ", $update_fields) . " WHERE id = ?";
+        $update_values[] = $admin_id;
+        $update_types .= "i";
+        
+        $stmt = $conn->prepare($update_query);
+        $stmt->bind_param($update_types, ...$update_values);
+        
+        if ($stmt->execute()) {
+            $success_message = "Settings updated successfully!";
+            
+            // Update local variables for display
+            if (isset($new_fullname) && !empty($new_fullname) && $new_fullname !== $admin_fullname) {
+                $admin_fullname = $new_fullname;
+            }
+            if (isset($new_email) && !empty($new_email) && $new_email !== $admin_email) {
+                $admin_email = $new_email;
+            }
+            
+            // Refresh admin data from database to ensure consistency
+            $stmt = $conn->prepare("SELECT fullname, email FROM admin WHERE id = ?");
+            $stmt->bind_param("i", $admin_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+            if ($result->num_rows > 0) {
+                $updated_data = $result->fetch_assoc();
+                $admin_fullname = $updated_data['fullname'];
+                $admin_email = $updated_data['email'];
+            }
+            $stmt->close();
+            
+        } else {
+            $error_message = "Failed to update settings. Please try again.";
+        }
+        $stmt->close();
+    } elseif (empty($update_fields) && empty($error_message)) {
+        $error_message = "No changes detected.";
     }
 }
 
-mysqli_stmt_close($stmt);
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Settings - La Croissanterie</title>
-    <link rel="stylesheet" href="style.css">
-    <style>
-        .admin-container {
-            max-width: 600px;
-            margin: 2rem auto;
-            padding: 2rem;
-            background: white;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
-
-        .admin-header {
-            text-align: center;
-            margin-bottom: 2rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #f0f0f0;
-        }
-
-        .admin-avatar {
-            width: 80px;
-            height: 80px;
-            background: #dc3545;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
-        }
-
-        .admin-form {
-            display: grid;
-            gap: 1.5rem;
-        }
-
-        .form-group {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .form-label {
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: #333;
-        }
-
-        .form-input {
-            padding: 0.75rem;
-            border: 2px solid #ddd;
-            border-radius: 5px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .form-input:focus {
-            outline: none;
-            border-color: #dc3545;
-        }
-
-        .password-section {
-            border-top: 2px solid #f0f0f0;
-            padding-top: 1.5rem;
-            margin-top: 1rem;
-        }
-
-        .password-section h3 {
-            margin-bottom: 1rem;
-            color: #333;
-        }
-
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 1rem;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1rem;
-            font-weight: 500;
-        }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .btn-primary {
-            background: #dc3545;
-            color: white;
-            padding: 0.75rem 2rem;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-
-        .btn-primary:hover {
-            background: #c82333;
-        }
-
-        .btn-secondary {
-            background: #6c757d;
-            color: white;
-            padding: 0.75rem 2rem;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            text-align: center;
-            transition: background-color 0.3s;
-        }
-
-        .btn-secondary:hover {
-            background: #545b62;
-        }
-
-        .button-group {
-            display: flex;
-            gap: 1rem;
-            justify-content: center;
-            margin-top: 1rem;
-        }
-
-        .account-info {
-            background: #f8f9fa;
-            padding: 1rem;
-            border-radius: 5px;
-            margin-bottom: 1.5rem;
-        }
-
-        .account-info h3 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
-        }
-
-        .account-info p {
-            margin: 0.25rem 0;
-            color: #666;
-        }
-
-        .admin-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            border-radius: 3px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            background: #dc3545;
-            color: white;
-        }
-
-        .password-requirements {
-            font-size: 0.9rem;
-            color: #666;
-            margin-top: 0.25rem;
-        }
-
-        @media (max-width: 768px) {
-            .form-row {
-                grid-template-columns: 1fr;
-            }
-            
-            .button-group {
-                flex-direction: column;
-            }
-        }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Settings - La Croissanterie</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="admin.css">
+  <style>
+    .settings-container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    .settings-card {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+    
+    .card-header {
+      background-color: #f8f9fa;
+      padding: 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .card-header h3 {
+      margin: 0;
+      color: #343a40;
+      font-size: 18px;
+      font-weight: 600;
+    }
+    
+    .card-body {
+      padding: 20px;
+    }
+    
+    .admin-info-display {
+      background-color: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      margin-bottom: 25px;
+    }
+    
+    .admin-info-display h4 {
+      margin: 0 0 10px 0;
+      color: #495057;
+      font-size: 16px;
+    }
+    
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid #dee2e6;
+    }
+    
+    .info-item:last-child {
+      border-bottom: none;
+    }
+    
+    .info-label {
+      font-weight: 600;
+      color: #6c757d;
+      min-width: 100px;
+    }
+    
+    .info-value {
+      color: #495057;
+      font-weight: 500;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 600;
+      color: #495057;
+    }
+    
+    .form-control {
+      width: 100%;
+      padding: 10px 15px;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      font-size: 14px;
+      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      box-sizing: border-box;
+    }
+    
+    .form-control:focus {
+      outline: none;
+      border-color: #80bdff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+    
+    .form-control:disabled {
+      background-color: #e9ecef;
+      opacity: 1;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.15s ease-in-out;
+    }
+    
+    .btn-primary {
+      background-color: #007bff;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background-color: #0056b3;
+    }
+    
+    .btn-secondary {
+      background-color: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background-color: #545b62;
+    }
+    
+    .alert {
+      padding: 12px 15px;
+      margin-bottom: 20px;
+      border: 1px solid transparent;
+      border-radius: 4px;
+    }
+    
+    .alert-success {
+      color: #155724;
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+    
+    .alert-danger {
+      color: #721c24;
+      background-color: #f8d7da;
+      border-color: #f5c6cb;
+    }
+    
+    .profile-upload-section {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    
+    .current-profile {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #dee2e6;
+    }
+    
+    .default-profile {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #f8f9fa;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid #dee2e6;
+    }
+    
+    .default-profile i {
+      font-size: 30px;
+      color: #6c757d;
+    }
+    
+    .upload-controls {
+      flex: 1;
+    }
+    
+    .file-input {
+      margin-bottom: 10px;
+    }
+    
+    .password-section {
+      border-top: 1px solid #dee2e6;
+      padding-top: 20px;
+      margin-top: 20px;
+    }
+    
+    .password-section h4 {
+      margin-bottom: 15px;
+      color: #343a40;
+      font-size: 16px;
+    }
+    
+    .form-row {
+      display: flex;
+      gap: 15px;
+    }
+    
+    .form-row .form-group {
+      flex: 1;
+    }
+    
+    .form-help {
+      font-size: 12px;
+      color: #6c757d;
+      margin-top: 5px;
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        flex-direction: column;
+        gap: 0;
+      }
+      
+      .profile-upload-section {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .info-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+      }
+    }
+  </style>
 </head>
 <body>
-<header>
-  <div class="header-container">
-    <div class="logo">
-      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M10 3C10 2.44772 10.4477 2 11 2H13C13.5523 2 14 2.44772 14 3V10.5858L15.2929 9.29289C15.6834 8.90237 16.3166 8.90237 16.7071 9.29289C17.0976 9.68342 17.0976 10.3166 16.7071 10.7071L12.7071 14.7071C12.3166 15.0976 11.6834 15.0976 11.2929 14.7071L7.29289 10.7071C6.90237 10.3166 6.90237 9.68342 7.29289 9.29289C7.68342 8.90237 8.31658 8.90237 8.70711 9.29289L10 10.5858V3Z"></path>
         <path d="M3 14C3 12.8954 3.89543 12 5 12H19C20.1046 12 21 12.8954 21 14V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V14Z"></path>
       </svg>
-      <span class="logo-text">La Croissanterie - Admin</span>
+      <span class="logo-text">La Croissanterie</span>
     </div>
-    
-    <nav>
-      <ul class="main-nav">
-        <li><a href="adminDashboard.php">Dashboard</a></li>
-        <li><a href="adminSettings.php">Settings</a></li>
-      </ul>
-    </nav>
-    
-    <div class="profile-dropdown">
-      <div class="dropdown-toggle" id="profileDropdown">
-        <div class="profile-icon">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </div>
-        <span class="profile-name"><?php echo htmlspecialchars($admin['fullname']); ?></span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="6 9 12 15 18 9"></polyline>
-        </svg>
-      </div>
-      <div class="dropdown-menu" id="profileMenu">
-        <a href="adminSettings.php">Admin Settings</a>
-        <div class="dropdown-divider"></div>
-        <a href="adminLogin.php" id="logoutBtn">Logout</a>
-      </div>
+    <div class="sidebar-menu">
+      <a href="admindashboard.php" class="menu-item">
+        <i class="fas fa-tachometer-alt"></i>
+        <span class="menu-text">Dashboard</span>
+      </a>
+      <a href="product.php" class="menu-item">
+        <i class="fas fa-box"></i>
+        <span class="menu-text">Products</span>
+      </a>
+      <a href="user_list.php" class="menu-item">
+        <i class="fas fa-users"></i>
+        <span class="menu-text">Users</span>
+      </a>
+      <a href="adminorder.php" class="menu-item">
+        <i class="fas fa-shopping-cart"></i>
+        <span class="menu-text">Orders</span>
+      </a>
+      <a href="adminTransaction.php" class="menu-item">
+        <i class="fas fa-money-bill-wave"></i>
+        <span class="menu-text">Transactions</span>
+      </a>
+      <a href="adminSetting.php" class="menu-item active">
+        <i class="fas fa-cog"></i>
+        <span class="menu-text">Settings</span>
+      </a>
     </div>
   </div>
-</header>
 
-<div class="container">
-    <div class="admin-container">
-        <div class="admin-header">
-            <div class="admin-avatar">
-                <?php echo strtoupper(substr($admin['fullname'], 0, 1)); ?>
-            </div>
-            <h1>Admin Settings</h1>
-            <p>Manage your administrator account information</p>
-        </div>
+  <!-- Main Content -->
+  <div class="main-content">
+    <div class="header">
+      <h1 class="page-title">Admin Settings</h1>
+      <div class="user-info">
+        <?php if(!empty($admin_profile)): ?>
+          <img src="<?php echo htmlspecialchars($admin_profile); ?>" alt="Profile" class="profile-pic">
+        <?php endif; ?>
+        
+        <a href="#" onclick="confirmLogout()" class="logout-btn">Logout</a>
 
-        <?php if ($success_message): ?>
-            <div class="alert alert-success">
-                <?php echo htmlspecialchars($success_message); ?>
-            </div>
+        <script>
+        function confirmLogout() {
+          if (confirm("Are you sure you want to logout?")) {
+            window.location.href = "logout.php";
+          }
+        }
+        </script>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
+      <div class="settings-container">
+        
+        <!-- Display Messages -->
+        <?php if (!empty($success_message)): ?>
+          <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
+          </div>
+        <?php endif; ?>
+        
+        <?php if (!empty($error_message)): ?>
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($error_message); ?>
+          </div>
         <?php endif; ?>
 
-        <?php if ($error_message): ?>
-            <div class="alert alert-error">
-                <?php echo htmlspecialchars($error_message); ?>
+        <!-- Current Admin Information Display -->
+        <div class="settings-card">
+          <div class="card-header">
+            <h3><i class="fas fa-user"></i> Current Admin Information</h3>
+          </div>
+          <div class="card-body">
+            <div class="admin-info-display">
+              <div class="info-item">
+                <span class="info-label">Username:</span>
+                <span class="info-value"><?php echo htmlspecialchars($admin_username); ?></span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Full Name:</span>
+                <span class="info-value"><?php echo htmlspecialchars($admin_fullname); ?></span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">Email:</span>
+                <span class="info-value"><?php echo htmlspecialchars($admin_email); ?></span>
+              </div>
             </div>
-        <?php endif; ?>
-
-        <div class="account-info">
-            <h3>Administrator Information</h3>
-            <p><strong>Username:</strong> <?php echo htmlspecialchars($admin['username']); ?></p>
-            <p><strong>Role:</strong> <span class="admin-badge">Administrator</span></p>
-            <p><strong>Admin ID:</strong> <?php echo htmlspecialchars($admin['id']); ?></p>
+          </div>
         </div>
 
-        <form method="POST" class="admin-form">
-            <div class="form-group">
-                <label for="fullname" class="form-label">Full Name *</label>
-                <input type="text" id="fullname" name="fullname" class="form-input" 
-                       value="<?php echo htmlspecialchars($admin['fullname']); ?>" required>
-            </div>
 
-            <div class="form-group">
-                <label for="email" class="form-label">Email Address *</label>
-                <input type="email" id="email" name="email" class="form-input" 
-                       value="<?php echo htmlspecialchars($admin['email']); ?>" required>
-            </div>
-
-            <div class="password-section">
-                <h3>Change Password</h3>
-                <p style="color: #666; margin-bottom: 1rem;">Leave password fields empty if you don't want to change your password.</p>
+        <!-- Account Information Section -->
+        <div class="settings-card">
+          <div class="card-header">
+            <h3><i class="fas fa-edit"></i> Update Account Information</h3>
+          </div>
+          <div class="card-body">
+            <form method="POST">
+              <div class="form-group">
+                <label for="username">Username</label>
+                <input type="text" id="username" class="form-control" value="<?php echo htmlspecialchars($admin_username); ?>" disabled>
+                <div class="form-help">Username cannot be changed</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="fullname">Full Name</label>
+                <input type="text" id="fullname" name="fullname" class="form-control" value="<?php echo htmlspecialchars($admin_fullname); ?>" required>
+                <div class="form-help">Enter your full name</div>
+              </div>
+              
+              <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($admin_email); ?>" required>
+                <div class="form-help">Enter a valid email address</div>
+              </div>
+              
+              <div class="password-section">
+                <h4>Change Password (Optional)</h4>
+                <p style="color: #6c757d; margin-bottom: 15px;">Leave password fields empty if you don't want to change your password.</p>
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control" minlength="3">
+                    <div class="form-help">Minimum 3 characters</div>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" minlength="3">
+                    <div class="form-help">Must match new password</div>
+                  </div>
+                </div>
                 
                 <div class="form-group">
-                    <label for="current_password" class="form-label">Current Password</label>
-                    <input type="password" id="current_password" name="current_password" class="form-input">
+                  <label for="current_password">Current Password</label>
+                  <input type="password" id="current_password" name="current_password" class="form-control">
+                  <div class="form-help">Required when changing password</div>
                 </div>
+              </div>
+              
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
 
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="new_password" class="form-label">New Password</label>
-                        <input type="password" id="new_password" name="new_password" class="form-input">
-                        <div class="password-requirements">Minimum 6 characters required</div>
-                    </div>
-                    <div class="form-group">
-                        <label for="confirm_password" class="form-label">Confirm New Password</label>
-                        <input type="password" id="confirm_password" name="confirm_password" class="form-input">
-                    </div>
-                </div>
-            </div>
-
-            <div class="button-group">
-                <button type="submit" name="update_admin" class="btn-primary">Update Admin Profile</button>
-                <a href="adminDashboard.php" class="btn-secondary">Cancel</a>
-            </div>
-        </form>
-    </div>
-</div>
-
-<!-- Logout Confirmation Modal -->
-<div class="modal" id="logoutModal">
-  <div class="modal-content logout-modal-content">
-    <span class="modal-close" id="closeLogoutModal">&times;</span>
-    <div class="logout-modal-body">
-      <h3>Confirm Logout</h3>
-      <p>Are you sure you want to logout from admin panel?</p>
-      <div class="logout-modal-buttons">
-        <button class="cancel-btn" id="cancelLogout">Cancel</button>
-        <button class="confirm-btn" id="confirmLogout">Logout</button>
       </div>
     </div>
   </div>
-</div>
 
-<footer class="footer">
-    <div class="footer-container">
-        <div class="footer-section">
-            <h3 class="footer-title">La Croissanterie - Admin Panel</h3>
-            <p>Administrative interface for managing the bakery system.</p>
-        </div>
-        
-        <div class="footer-section">
-            <h3 class="footer-title">Admin Tools</h3>
-            <ul class="footer-links">
-                <li><a href="adminDashboard.php">Dashboard</a></li>
-                <li><a href="adminSettings.php">Settings</a></li>
-                <li><a href="userManagement.php">User Management</a></li>
-                <li><a href="orderManagement.php">Order Management</a></li>
-            </ul>
-        </div>
-        
-        <div class="footer-section">
-            <h3 class="footer-title">System Info</h3>
-            <ul class="footer-links">
-                <li>Admin Panel v1.0</li>
-                <li>Last Updated: <?php echo date('Y-m-d'); ?></li>
-                <li>Status: Active</li>
-            </ul>
-        </div>
-        
-        <div class="copyright">
-            &copy; <?php echo date('Y'); ?> La Croissanterie Admin Panel. All rights reserved.
-        </div>
-    </div>
-</footer>
-
-<script>
-    // Initialize profile dropdown functionality
-    const profileDropdown = document.getElementById('profileDropdown');
-    const profileMenu = document.getElementById('profileMenu');
-    
-    profileDropdown.addEventListener('click', () => {
-        profileMenu.classList.toggle('show');
+  <script>
+    // Password confirmation validation
+    document.getElementById('confirm_password').addEventListener('input', function() {
+      const newPassword = document.getElementById('new_password').value;
+      const confirmPassword = this.value;
+      
+      if (newPassword !== confirmPassword && confirmPassword !== '') {
+        this.setCustomValidity('Passwords do not match');
+      } else {
+        this.setCustomValidity('');
+      }
     });
     
-    // Close dropdown when clicking outside
-    window.addEventListener('click', (e) => {
-        if (!e.target.closest('.profile-dropdown')) {
-            profileMenu.classList.remove('show');
-        }
+    document.getElementById('new_password').addEventListener('input', function() {
+      const confirmPassword = document.getElementById('confirm_password');
+      const newPassword = this.value;
+      
+      if (newPassword !== confirmPassword.value && confirmPassword.value !== '') {
+        confirmPassword.setCustomValidity('Passwords do not match');
+      } else {
+        confirmPassword.setCustomValidity('');
+      }
     });
-    
-    // Initialize logout modal functionality
-    const logoutBtn = document.getElementById('logoutBtn');
-    const logoutModal = document.getElementById('logoutModal');
-    const closeLogoutModal = document.getElementById('closeLogoutModal');
-    const cancelLogout = document.getElementById('cancelLogout');
-    const confirmLogout = document.getElementById('confirmLogout');
-    
-    logoutBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        logoutModal.classList.add('show');
-    });
-    
-    closeLogoutModal.addEventListener('click', () => {
-        logoutModal.classList.remove('show');
-    });
-    
-    cancelLogout.addEventListener('click', () => {
-        logoutModal.classList.remove('show');
-    });
-    
-    confirmLogout.addEventListener('click', () => {
-        window.location.href = 'adminLogin.php';
-    });
-    
-    // Close modal when clicking outside
-    logoutModal.addEventListener('click', (e) => {
-        if (e.target === logoutModal) {
-            logoutModal.classList.remove('show');
-        }
-    });
-
-    // Auto-hide alert messages after 5 seconds
-    const alertBoxes = document.querySelectorAll('.alert');
-    alertBoxes.forEach(alertBox => {
-        setTimeout(() => {
-            alertBox.style.opacity = '0';
-            setTimeout(() => {
-                alertBox.style.display = 'none';
-            }, 500);
-        }, 5000);
-    });
-
-    // Password validation
-    const newPassword = document.getElementById('new_password');
-    const confirmPassword = document.getElementById('confirm_password');
-    const currentPassword = document.getElementById('current_password');
-
-    function validatePasswords() {
-        if (newPassword.value && confirmPassword.value) {
-            if (newPassword.value !== confirmPassword.value) {
-                confirmPassword.setCustomValidity('Passwords do not match');
-            } else if (newPassword.value.length < 6) {
-                newPassword.setCustomValidity('Password must be at least 6 characters long');
-            } else {
-                confirmPassword.setCustomValidity('');
-                newPassword.setCustomValidity('');
-            }
-        }
-    }
-
-    newPassword.addEventListener('input', validatePasswords);
-    confirmPassword.addEventListener('input', validatePasswords);
-
-    // Require current password if new password is entered
-    newPassword.addEventListener('input', function() {
-        if (this.value) {
-            currentPassword.required = true;
-            currentPassword.setAttribute('placeholder', 'Current password required');
-        } else {
-            currentPassword.required = false;
-            currentPassword.setAttribute('placeholder', '');
-        }
-    });
-
-    // Form validation before submit
-    document.querySelector('.admin-form').addEventListener('submit', function(e) {
-        const newPass = newPassword.value;
-        const confirmPass = confirmPassword.value;
-        const currentPass = currentPassword.value;
-        
-        if (newPass && !currentPass) {
-            e.preventDefault();
-            alert('Current password is required to change your password.');
-            currentPassword.focus();
-            return false;
-        }
-        
-        if (newPass && newPass !== confirmPass) {
-            e.preventDefault();
-            alert('New passwords do not match.');
-            confirmPassword.focus();
-            return false;
-        }
-        
-        if (newPass && newPass.length < 6) {
-            e.preventDefault();
-            alert('New password must be at least 6 characters long.');
-            newPassword.focus();
-            return false;
-        }
-    });
-</script>
+  </script>
 </body>
 </html>

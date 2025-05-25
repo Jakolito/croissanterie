@@ -2,16 +2,16 @@
 <carts>
   <cart user_id="gian">
     <item product_id="p001">
-      <quantity>1</quantity>
-      <image>uploads/pic1.png</image>
+      <quantity>2</quantity>
+      <image>uploads/pic1.jpg</image>
       <name>Vanilla Bean Strawberry Bliss</name>
       <price>650</price>
     </item>
-  </cart>
+  <item product_id="p003"><quantity>1</quantity><image>uploads/pic3.jpg</image><name>Mini Floss Pillows</name><price>40</price></item><item product_id="p005"><quantity>1</quantity><image>uploads/pic5.jpg</image><name>Assorted Brookie</name><price>400</price></item></cart>
   <cart user_id="jonathan">
     
     
-  </cart>
+  <item product_id="p015"><quantity>1</quantity><image>uploads/pic15.jpg</image><name>Japanese Chocolate Roll</name><price>50</price></item><item product_id="p003"><quantity>1</quantity><image>uploads/pic3.jpg</image><name>Mini Floss Pillows</name><price>40</price></item><item product_id="p018"><quantity>1</quantity><image>uploads/pic18.jpg</image><name>Cheese Stick</name><price>60</price></item></cart>
   <cart user_id="jamille">
     <item product_id="p002">
       <quantity>3</quantity>
@@ -21,7 +21,7 @@
     </item>
     <item product_id="p003">
       <quantity>1</quantity>
-      <image>uploads/pic3.png</image>
+      <image>uploads/pic3.jpg</image>
       <name>Mini Floss Pillows</name>
       <price>40</price>
     </item>
@@ -29,7 +29,7 @@
   <cart user_id="ian">
     <item product_id="p001">
       <quantity>1</quantity>
-      <image>uploads/pic1.png</image>
+      <image>uploads/pic1.jpg</image>
       <name>Vanilla Bean Strawberry Bliss</name>
       <price>650</price>
     </item>

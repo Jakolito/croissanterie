@@ -3,7 +3,7 @@ include('connect.php');
 session_start();
 
 // XML file path
-$xmlPath = 'C:\xampp\htdocs\PASTRY1\pastry.xml';
+$xmlPath = 'pastry.xml';
 
 // Check if the XML file exists and is readable
 if (!file_exists($xmlPath)) {

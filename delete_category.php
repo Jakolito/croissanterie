@@ -3,7 +3,7 @@ include('connect.php');
 session_start();
 
 // Categories XML file path
-$categoriesXmlPath = 'C:\xampp\htdocs\PASTRY1\categories.xml';
+$categoriesXmlPath = 'categories.xml';
 
 // Check if the XML file exists and is readable
 if (!file_exists($categoriesXmlPath)) {
@@ -64,7 +64,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['category_name'])) {
     // Save the updated XML
     if ($xml->asXML($categoriesXmlPath)) {
         // Now update all products using this category
-        $pastryXmlPath = 'C:\xampp\htdocs\PASTRY1\pastry.xml';
+        $pastryXmlPath = 'pastry.xml';
         
         if (file_exists($pastryXmlPath) && $newCategory !== null) {
             $pastryXml = simplexml_load_file($pastryXmlPath);

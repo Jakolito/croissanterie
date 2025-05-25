@@ -1,6 +1,10 @@
 <?php
 session_start();
 
+// Add error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Check if user is logged in, redirect to login if not
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
@@ -29,17 +33,29 @@ function formatXML($xml) {
     return $dom->saveXML();
 }
 
-// Create or load the transactions XML file
+// Create or load the transactions XML file with better error handling
 if (!file_exists($transactionsXmlPath)) {
     $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-    file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+    
+    // Check if file is writable
+    if (!is_writable(dirname($transactionsXmlPath))) {
+        die("Error: Directory is not writable. Please check permissions for: " . dirname($transactionsXmlPath));
+    }
+    
+    $result = file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+    if ($result === false) {
+        die("Error: Could not create transactions.xml file. Check permissions.");
+    }
 } else {
     // Try to load the file, if it fails, create a new one
     $transactionsXml = @simplexml_load_file($transactionsXmlPath);
     if ($transactionsXml === false) {
         // File exists but is invalid, recreate it
         $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+        $result = file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+        if ($result === false) {
+            die("Error: Could not recreate transactions.xml file. Check permissions.");
+        }
     }
 }
 
@@ -47,6 +63,9 @@ if (!file_exists($transactionsXmlPath)) {
 $pastries = [];
 if (file_exists($xmlPath)) {
     $file = simplexml_load_file($xmlPath);
+    if ($file === false) {
+        die("Error: Could not load pastry.xml file.");
+    }
     foreach ($file->pastry as $row) {
         // Add ID if it doesn't exist
         if (!isset($row['id'])) {
@@ -54,10 +73,20 @@ if (file_exists($xmlPath)) {
         }
         $pastries[(string)$row['id']] = $row;
     }
+} else {
+    die("Error: pastry.xml file not found.");
 }
 
 // Load cart data
+if (!file_exists($cartXmlPath)) {
+    die("Error: carts.xml file not found.");
+}
+
 $cartsXml = simplexml_load_file($cartXmlPath);
+if ($cartsXml === false) {
+    die("Error: Could not load carts.xml file.");
+}
+
 $userCart = null;
 foreach ($cartsXml->cart as $cart) {
     if ((string)$cart['user_id'] === $user_id) {
@@ -132,6 +161,8 @@ $transaction_id = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (isset($_POST['process_payment'])) {
+        echo "<!-- DEBUG: Processing payment -->\n";
+        
         $payment_method = $_POST['payment_method'];
         
         // Get customer details from form
@@ -141,116 +172,153 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $customer_email = $_POST['customer_email'];
         $delivery_notes = $_POST['delivery_notes'];
         
+        // Validate required fields
+        if (empty($customer_name) || empty($customer_address) || empty($customer_phone) || empty($customer_email)) {
+            die("Error: All required fields must be filled.");
+        }
+        
         // Generate transaction ID
         $transaction_id = 'TRANS' . time() . rand(1000, 9999);
         
-        // Create new transaction record in XML
-        $transaction = $transactionsXml->addChild('transaction');
-        $transaction->addAttribute('id', $transaction_id);
-        $transaction->addAttribute('order_id', $order_id);
-        $transaction->addAttribute('user_id', $user_id);
-        $transaction->addAttribute('date', date('Y-m-d H:i:s'));
+        echo "<!-- DEBUG: Creating transaction with ID: $transaction_id -->\n";
         
-        // Add transaction details
-        $transaction->addChild('payment_method', $payment_method);
-        $transaction->addChild('total_amount', $total);
-        $transaction->addChild('status', 'pending'); // This is already correct - ensure status is "pending"
-        $transaction->addChild('payment_status', 'paid'); // Add a separate payment status field
-        
-        // Add customer details to transaction
-        $customer = $transaction->addChild('customer');
-        $customer->addChild('name', $customer_name);
-        $customer->addChild('address', $customer_address);
-        $customer->addChild('phone', $customer_phone);
-        $customer->addChild('email', $customer_email);
-        $customer->addChild('delivery_notes', $delivery_notes);
-        
-        // Add items to transaction
-        $items = $transaction->addChild('items');
-        foreach ($checkoutItems as $item) {
-            $transItem = $items->addChild('item');
-            $transItem->addAttribute('product_id', $item['id']);
+        try {
+            // Create new transaction record in XML
+            $transaction = $transactionsXml->addChild('transaction');
+            $transaction->addAttribute('id', $transaction_id);
+            $transaction->addAttribute('order_id', $order_id);
+            $transaction->addAttribute('user_id', $user_id);
+            $transaction->addAttribute('date', date('Y-m-d H:i:s'));
             
-            // Add complete item details including name, price, quantity, total and image
-            $transItem->addChild('name', $item['name']);
-            $transItem->addChild('price', $item['price']);
-            $transItem->addChild('quantity', $item['quantity']);
-            $transItem->addChild('total', $item['total']);
-            $transItem->addChild('image', $item['image']);
-        }
-        
-        // Save transaction to XML file with proper formatting
-        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
-        
-        // Remove purchased items from cart
-        if ($userCart !== null) {
-            // Create a copy of items to iterate through
-            $itemsToRemove = [];
+            // Add transaction details
+            $transaction->addChild('payment_method', htmlspecialchars($payment_method));
+            $transaction->addChild('total_amount', $total);
+            $transaction->addChild('status', 'pending');
+            $transaction->addChild('payment_status', 'paid');
             
-            foreach ($userCart->item as $index => $item) {
-                $product_id = (string)$item['product_id'];
+            // Add customer details to transaction
+            $customer = $transaction->addChild('customer');
+            $customer->addChild('name', htmlspecialchars($customer_name));
+            $customer->addChild('address', htmlspecialchars($customer_address));
+            $customer->addChild('phone', htmlspecialchars($customer_phone));
+            $customer->addChild('email', htmlspecialchars($customer_email));
+            $customer->addChild('delivery_notes', htmlspecialchars($delivery_notes));
+            
+            // Add items to transaction
+            $items = $transaction->addChild('items');
+            foreach ($checkoutItems as $item) {
+                $transItem = $items->addChild('item');
+                $transItem->addAttribute('product_id', $item['id']);
                 
-                // Skip if product doesn't exist in products XML
-                if (!isset($pastries[$product_id])) {
-                    continue;
-                }
+                // Add complete item details including name, price, quantity, total and image
+                $transItem->addChild('name', htmlspecialchars($item['name']));
+                $transItem->addChild('price', $item['price']);
+                $transItem->addChild('quantity', $item['quantity']);
+                $transItem->addChild('total', $item['total']);
+                $transItem->addChild('image', htmlspecialchars($item['image']));
+            }
+            
+            echo "<!-- DEBUG: Transaction XML created, attempting to save -->\n";
+            
+            // Save transaction to XML file with proper formatting
+            $xmlContent = formatXML($transactionsXml);
+            $result = file_put_contents($transactionsXmlPath, $xmlContent);
+            
+            if ($result === false) {
+                throw new Exception("Failed to save transaction to XML file. Check file permissions.");
+            }
+            
+            echo "<!-- DEBUG: Transaction saved successfully. Bytes written: $result -->\n";
+            
+            // Remove purchased items from cart
+            if ($userCart !== null) {
+                // Create a copy of items to iterate through
+                $itemsToRemove = [];
                 
-                // Check if item should be removed
-                $shouldRemove = false;
-                
-                if ($isSelectedCheckout) {
-                    // If doing selected checkout, only remove items that were selected
-                    if (in_array($product_id, $selectedItems)) {
-                        $shouldRemove = true;
+                foreach ($userCart->item as $index => $item) {
+                    $product_id = (string)$item['product_id'];
+                    
+                    // Skip if product doesn't exist in products XML
+                    if (!isset($pastries[$product_id])) {
+                        continue;
                     }
-                } else {
-                    // If doing "checkout all", remove all items that are in checkout
-                    foreach ($checkoutItems as $checkoutItem) {
-                        if ($checkoutItem['id'] === $product_id) {
+                    
+                    // Check if item should be removed
+                    $shouldRemove = false;
+                    
+                    if ($isSelectedCheckout) {
+                        // If doing selected checkout, only remove items that were selected
+                        if (in_array($product_id, $selectedItems)) {
                             $shouldRemove = true;
-                            break;
+                        }
+                    } else {
+                        // If doing "checkout all", remove all items that are in checkout
+                        foreach ($checkoutItems as $checkoutItem) {
+                            if ($checkoutItem['id'] === $product_id) {
+                                $shouldRemove = true;
+                                break;
+                            }
                         }
                     }
+                    
+                    if ($shouldRemove) {
+                        $itemsToRemove[] = $item;
+                    }
                 }
                 
-                if ($shouldRemove) {
-                    $itemsToRemove[] = $item;
+                // Now remove the items
+                foreach ($itemsToRemove as $itemToRemove) {
+                    $dom = dom_import_simplexml($itemToRemove);
+                    $dom->parentNode->removeChild($dom);
+                }
+                
+                // Save changes to cart XML file with proper formatting
+                $cartResult = file_put_contents($cartXmlPath, formatXML($cartsXml));
+                if ($cartResult === false) {
+                    echo "<!-- DEBUG: Warning - Could not update cart XML -->\n";
                 }
             }
             
-            // Now remove the items
-            foreach ($itemsToRemove as $itemToRemove) {
-                $dom = dom_import_simplexml($itemToRemove);
-                $dom->parentNode->removeChild($dom);
+            // Clear selected items session
+            if (isset($_SESSION['selected_items'])) {
+                unset($_SESSION['selected_items']);
             }
             
-            // Save changes to cart XML file with proper formatting
-            file_put_contents($cartXmlPath, formatXML($cartsXml));
-        }
-        
-        // Clear selected items session
-        if (isset($_SESSION['selected_items'])) {
-            unset($_SESSION['selected_items']);
-        }
-        
-        // Set payment success flag
-        $paymentSuccess = true;
-        
-        // Redirect to confirmation page or display confirmation
-        if ($payment_method === 'gcash') {
-            // Show GCash payment screen
-            $_SESSION['order_id'] = $order_id;
-            $_SESSION['total_amount'] = $total;
-            $_SESSION['transaction_id'] = $transaction_id;
-            header("Location: gcash_payment.php");
-            exit();
-        } else {
-            // Redirect to confirmation page
-            header("Location: order_confirmation.php?order_id=" . $order_id);
-            exit();
+            // Set payment success flag
+            $paymentSuccess = true;
+            
+            echo "<!-- DEBUG: Payment processing completed successfully -->\n";
+            
+            // Redirect to confirmation page or display confirmation
+            if ($payment_method === 'gcash') {
+                // Show GCash payment screen
+                $_SESSION['order_id'] = $order_id;
+                $_SESSION['total_amount'] = $total;
+                $_SESSION['transaction_id'] = $transaction_id;
+                header("Location: gcash_payment.php");
+                exit();
+            } else {
+                // Redirect to confirmation page
+                header("Location: order_confirmation.php?order_id=" . $order_id);
+                exit();
+            }
+            
+        } catch (Exception $e) {
+            die("Error processing payment: " . $e->getMessage());
         }
     }
 }
+
+// Debug: Check file permissions
+echo "<!-- DEBUG INFO:\n";
+echo "Transactions XML Path: $transactionsXmlPath\n";
+echo "File exists: " . (file_exists($transactionsXmlPath) ? 'Yes' : 'No') . "\n";
+echo "File readable: " . (is_readable($transactionsXmlPath) ? 'Yes' : 'No') . "\n";
+echo "File writable: " . (is_writable($transactionsXmlPath) ? 'Yes' : 'No') . "\n";
+echo "Directory writable: " . (is_writable(dirname($transactionsXmlPath)) ? 'Yes' : 'No') . "\n";
+echo "Current user: " . get_current_user() . "\n";
+echo "PHP version: " . PHP_VERSION . "\n";
+echo "-->\n";
 ?>
 
 <!DOCTYPE html>

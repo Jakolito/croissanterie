@@ -2,7 +2,7 @@
 <carts>
   <cart user_id="gian">
     <item product_id="p001">
-      <quantity>2</quantity>
+      <quantity>1</quantity>
       <image>uploads/pic1.jpg</image>
       <name>Vanilla Bean Strawberry Bliss</name>
       <price>650</price>

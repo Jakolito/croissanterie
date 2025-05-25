@@ -97,16 +97,25 @@ function formatDate($dateString) {
 function getStatusClass($status) {
     switch (strtolower($status)) {
         case 'completed':
+        case 'delivered':
             return 'status-completed';
         case 'processing':
+        case 'approved':
+        case 'shipping':
             return 'status-processing';
-        case 'delivered':
-            return 'status-delivered';
+        case 'pending':
+            return 'status-pending';
         case 'cancelled':
             return 'status-cancelled';
         default:
             return 'status-default';
     }
+}
+
+// Function to check if order can be tracked
+function canTrackOrder($status) {
+    $trackableStatuses = ['approved', 'shipping', 'processing'];
+    return in_array(strtolower($status), $trackableStatuses);
 }
 ?>
 
@@ -205,9 +214,9 @@ function getStatusClass($status) {
             color: #1565c0;
         }
         
-        .status-delivered {
-            background-color: #e8f5e9;
-            color: #2e7d32;
+        .status-pending {
+            background-color: #fff3e0;
+            color: #f57c00;
         }
         
         .status-cancelled {
@@ -301,8 +310,8 @@ function getStatusClass($status) {
             background-color: #f0f5ff;
         }
         
-        .reorder-btn {
-            background-color: #4a6fa1;
+        .track-order-btn {
+            background-color: #28a745;
             color: white;
             border: none;
             padding: 6px 12px;
@@ -312,8 +321,19 @@ function getStatusClass($status) {
             transition: all 0.2s;
         }
         
-        .reorder-btn:hover {
-            background-color: #3a5a8f;
+        .track-order-btn:hover {
+            background-color: #218838;
+        }
+        
+        .pending-status {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            cursor: not-allowed;
+            opacity: 0.7;
         }
         
         .order-summary {
@@ -592,6 +612,83 @@ function getStatusClass($status) {
         .order-items-list.open {
             max-height: 1000px;
         }
+
+        /* Tracking progress bar */
+        .tracking-progress {
+            margin: 20px 0;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border-radius: 8px;
+        }
+        
+        .progress-title {
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .progress-bar {
+            display: flex;
+            justify-content: space-between;
+            position: relative;
+            margin-bottom: 10px;
+        }
+        
+        .progress-step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            position: relative;
+        }
+        
+        .step-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background-color: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 5px;
+            z-index: 2;
+        }
+        
+        .step-icon.active {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .step-icon.completed {
+            background-color: #28a745;
+            color: white;
+        }
+        
+        .step-label {
+            font-size: 0.8rem;
+            text-align: center;
+            color: #666;
+        }
+        
+        .step-label.active {
+            color: #28a745;
+            font-weight: 600;
+        }
+        
+        .progress-line {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background-color: #ddd;
+            z-index: 1;
+        }
+        
+        .progress-line-fill {
+            height: 100%;
+            background-color: #28a745;
+            transition: width 0.3s ease;
+        }
     </style>
 </head>
 <body>
@@ -712,6 +809,11 @@ function getStatusClass($status) {
                             <div class="order-actions">
                                 <button class="view-details-btn" data-transaction-id="<?php echo htmlspecialchars((string)$transaction['id']); ?>">View Details</button>
                                 
+                                <?php if (canTrackOrder((string)$transaction->status)): ?>
+                                    <button class="track-order-btn" data-transaction-id="<?php echo htmlspecialchars((string)$transaction['id']); ?>" data-order-id="<?php echo htmlspecialchars((string)$transaction['order_id']); ?>">Track Order</button>
+                                <?php elseif (strtolower((string)$transaction->status) === 'pending'): ?>
+                                    <button class="pending-status" disabled>Awaiting Approval</button>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>
@@ -759,10 +861,11 @@ function getStatusClass($status) {
                             $isActive = $i === $currentPage ? 'active' : '';
                             $pageLink = "?filter=$filter&page=$i";
                             ?>
-                            <a href="<?php echo $pageLink; ?>" class="pagination-item <?php echo $isActive; ?>"><?php echo $i; ?></a>
-                            <?php
-                        }
+                            <a href="<?php echo $pageLink; ?>" class="pagination-item <?php echo $isActive; ?>"
+                            <?php echo $i; ?></a>
+                        <?php } ?>
                         
+                        <?php
                         // Next button
                         $nextPage = $currentPage + 1;
                         $nextDisabled = $nextPage > $totalPages ? 'disabled' : '';
@@ -781,14 +884,15 @@ function getStatusClass($status) {
                 <div class="empty-history">
                     <div class="empty-icon">
                         <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 8v4"></path>
-                            <path d="M12 16h.01"></path>
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
                     </div>
-                    <h2>No orders found</h2>
-                    <p>No orders match your selected filter. Try changing your filter or place a new order.</p>
-                    <a href="menu2.php" class="btn primary-btn">Browse Products</a>
+                    <h2>No orders found for this filter</h2>
+                    <p>Try adjusting your filter criteria or browse our menu to place your first order.</p>
+                    <a href="menu2.php" class="view-details-btn" style="display: inline-block; text-decoration: none; margin-top: 10px;">Browse Menu</a>
                 </div>
             <?php endif; ?>
             
@@ -798,207 +902,360 @@ function getStatusClass($status) {
                     <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="9" cy="21" r="1"></circle>
                         <circle cx="20" cy="21" r="1"></circle>
-                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61l1.14-8H6"></path>
                     </svg>
                 </div>
-                <h2>No Order History</h2>
-                <p>You haven't placed any orders yet. Browse our products and place your first order!</p>
-                <a href="menu2.php" class="btn primary-btn">Start Shopping</a>
+                <h2>No orders yet</h2>
+                <p>You haven't placed any orders yet. Start by browsing our delicious menu!</p>
+                <a href="menu2.php" class="view-details-btn" style="display: inline-block; text-decoration: none; margin-top: 10px;">Browse Menu</a>
             </div>
         <?php endif; ?>
     </div>
 </div>
 
 <!-- Order Details Modal -->
-<div class="modal" id="orderDetailsModal">
+<div id="orderModal" class="modal">
     <div class="modal-content">
         <div class="modal-header">
             <h2 class="modal-title">Order Details</h2>
             <button class="modal-close" id="closeModal">&times;</button>
         </div>
-        <div class="modal-body" id="orderDetailsContent">
-            <!-- Content will be loaded dynamically -->
-            <div id="orderDetailsSkeleton">
-                <div class="order-detail-section">
-                    <h3 class="order-detail-section-title">Order Information</h3>
-                    <div class="detail-row">
-                        <div class="detail-label">Order ID:</div>
-                        <div class="detail-value" id="modalOrderId"></div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Order Date:</div>
-                        <div class="detail-value" id="modalOrderDate"></div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Status:</div>
-                        <div class="detail-value" id="modalOrderStatus"></div>
-                    </div>
-                </div>
-                
-                <div class="order-detail-section">
-                    <h3 class="order-detail-section-title">Items</h3>
-                    <div id="modalOrderItems">
-                        <!-- Items will be inserted here dynamically -->
-                    </div>
-                </div>
-                
-                <div class="delivery-info">
-                    <div class="delivery-info-title">Delivery Information</div>
-                    <div class="detail-row">
-                        <div class="detail-label">Address:</div>
-                        <div class="detail-value" id="modalDeliveryAddress"></div>
-                    </div>
-                    <div class="detail-row">
-                        <div class="detail-label">Contact:</div>
-                        <div class="detail-value" id="modalDeliveryContact"></div>
-                    </div>
-                </div>
-                
-                <div class="order-summary">
-                    <div class="summary-row">
-                        <div>Subtotal:</div>
-                        <div id="modalSubtotal"></div>
-                    </div>
-                    <div class="summary-row">
-                        <div>Delivery Fee:</div>
-                        <div id="modalDeliveryFee"></div>
-                    </div>
-                    <div class="summary-row total">
-                        <div>Total:</div>
-                        <div id="modalTotal"></div>
-                    </div>
-                </div>
-            </div>
+        <div class="modal-body" id="modalBody">
+            <!-- Order details will be loaded here -->
         </div>
         <div class="modal-footer">
             <button class="view-details-btn" id="closeModalBtn">Close</button>
-            <button class="reorder-btn" id="modalReorderBtn">Reorder</button>
+        </div>
+    </div>
+</div>
+
+<!-- Order Tracking Modal -->
+<div id="trackingModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Track Your Order</h2>
+            <button class="modal-close" id="closeTrackingModal">&times;</button>
+        </div>
+        <div class="modal-body" id="trackingModalBody">
+            <!-- Tracking details will be loaded here -->
+        </div>
+        <div class="modal-footer">
+            <button class="view-details-btn" id="closeTrackingBtn">Close</button>
         </div>
     </div>
 </div>
 
 <script>
-    // Profile dropdown toggle
+// Profile dropdown functionality
+document.addEventListener('DOMContentLoaded', function() {
     const profileDropdown = document.getElementById('profileDropdown');
     const profileMenu = document.getElementById('profileMenu');
     
-    profileDropdown.addEventListener('click', () => {
+    profileDropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
         profileMenu.classList.toggle('show');
     });
     
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (event) => {
-        if (!profileDropdown.contains(event.target)) {
-            profileMenu.classList.remove('show');
+    document.addEventListener('click', function() {
+        profileMenu.classList.remove('show');
+    });
+    
+    profileMenu.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
+});
+
+// Modal functionality
+const orderModal = document.getElementById('orderModal');
+const trackingModal = document.getElementById('trackingModal');
+const modalBody = document.getElementById('modalBody');
+const trackingModalBody = document.getElementById('trackingModalBody');
+
+// Close modal functions
+function closeModal() {
+    orderModal.classList.remove('show');
+    trackingModal.classList.remove('show');
+}
+
+document.getElementById('closeModal').addEventListener('click', closeModal);
+document.getElementById('closeModalBtn').addEventListener('click', closeModal);
+document.getElementById('closeTrackingModal').addEventListener('click', closeModal);
+document.getElementById('closeTrackingBtn').addEventListener('click', closeModal);
+
+// Close modal when clicking outside
+window.addEventListener('click', function(event) {
+    if (event.target === orderModal || event.target === trackingModal) {
+        closeModal();
+    }
+});
+
+// View order details
+document.querySelectorAll('.view-details-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const transactionId = this.getAttribute('data-transaction-id');
+        if (!transactionId) return;
+        
+        // Find the transaction data
+        const transactions = <?php echo json_encode($transactions); ?>;
+        const transaction = transactions.find(t => t['@attributes'].id === transactionId);
+        
+        if (transaction) {
+            showOrderDetails(transaction);
         }
     });
-    
-    // Logout button functionality
-    document.getElementById('logoutBtn').addEventListener('click', (e) => {
-        e.preventDefault();
-        // Implement AJAX logout or redirect to logout page
-        window.location.href = 'logout.php';
-    });
-    
-    // Modal functionality
-    const modal = document.getElementById('orderDetailsModal');
-    const closeModalBtn = document.getElementById('closeModalBtn');
-    const closeModalX = document.getElementById('closeModal');
-    
-    // Close modal with buttons
-    closeModalBtn.addEventListener('click', () => {
-        modal.classList.remove('show');
-    });
-    
-    closeModalX.addEventListener('click', () => {
-        modal.classList.remove('show');
-    });
-    
-    // Close modal when clicking outside
-    window.addEventListener('click', (event) => {
-        if (event.target === modal) {
-            modal.classList.remove('show');
+});
+
+// Track order
+document.querySelectorAll('.track-order-btn').forEach(button => {
+    button.addEventListener('click', function() {
+        const transactionId = this.getAttribute('data-transaction-id');
+        const orderId = this.getAttribute('data-order-id');
+        
+        if (!transactionId || !orderId) return;
+        
+        // Find the transaction data
+        const transactions = <?php echo json_encode($transactions); ?>;
+        const transaction = transactions.find(t => t['@attributes'].id === transactionId);
+        
+        if (transaction) {
+            showOrderTracking(transaction, orderId);
         }
     });
-    
-    // View order details functionality
-    const viewDetailsBtns = document.querySelectorAll('.view-details-btn');
-    viewDetailsBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const transactionId = btn.getAttribute('data-transaction-id');
-            loadOrderDetails(transactionId);
-            modal.classList.add('show');
-        });
+});
+
+// Show order details in modal
+function showOrderDetails(transaction) {
+    const orderDate = new Date(transaction['@attributes'].date);
+    const formattedDate = orderDate.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
     });
     
-    // Reorder functionality
-    const reorderBtns = document.querySelectorAll('.reorder-btn');
-    reorderBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            const transactionId = btn.getAttribute('data-transaction-id');
-            reorderItems(transactionId);
+    let itemsHtml = '';
+    if (Array.isArray(transaction.items.item)) {
+        transaction.items.item.forEach(item => {
+            itemsHtml += `
+                <div class="order-item">
+                    <img src="${item.image}" alt="${item.name}" class="order-item-image">
+                    <div class="order-item-details">
+                        <h3 class="order-item-name">${item.name}</h3>
+                        <div class="order-item-price">₱${parseFloat(item.price).toFixed(2)}</div>
+                        <div class="order-item-quantity">Quantity: ${item.quantity}</div>
+                    </div>
+                    <div class="order-item-total">₱${parseFloat(item.total).toFixed(2)}</div>
+                </div>
+            `;
         });
-    });
-    
-    // Toggle order items display
-    const itemsToggles = document.querySelectorAll('.items-toggle');
-    itemsToggles.forEach(toggle => {
-        toggle.addEventListener('click', () => {
-            toggle.classList.toggle('open');
-            const orderId = toggle.getAttribute('data-order-id');
-            const itemsList = document.querySelector(`.order-items-list[data-order-id="${orderId}"]`);
-            if (itemsList) {
-                itemsList.classList.toggle('open');
-            }
-        });
-    });
-    
-    // Function to load order details
-    function loadOrderDetails(transactionId) {
-        // In a real application, this would be an AJAX request to fetch order details
-        // For now, we'll simulate loading with static data based on the DOM
-        
-        // Find the order card that was clicked
-        const orderCard = document.querySelector(`.view-details-btn[data-transaction-id="${transactionId}"]`).closest('.order-card');
-        
-        // Extract information from the order card
-        const orderId = orderCard.querySelector('.order-id').textContent.replace('Order #', '');
-        const orderDate = orderCard.querySelector('.order-date').textContent;
-        const orderStatus = orderCard.querySelector('.order-status').textContent.trim();
-        const orderTotal = orderCard.querySelector('.order-total').textContent.replace('Total: ', '');
-        
-        // Update modal with extracted information
-        document.getElementById('modalOrderId').textContent = orderId;
-        document.getElementById('modalOrderDate').textContent = orderDate;
-        document.getElementById('modalOrderStatus').textContent = orderStatus;
-        document.getElementById('modalTotal').textContent = orderTotal;
-        
-        // Set placeholder values for other fields
-        document.getElementById('modalDeliveryAddress').textContent = "123 Sample St., City";
-        document.getElementById('modalDeliveryContact').textContent = "09123456789";
-        document.getElementById('modalSubtotal').textContent = orderTotal.replace('₱', '₱');
-        document.getElementById('modalDeliveryFee').textContent = "₱50.00";
-        
-        // Clone order items from order card to modal
-        const itemsContainer = document.getElementById('modalOrderItems');
-        itemsContainer.innerHTML = '';
-        
-        // Get all items from the order card (visible and hidden)
-        const orderItems = orderCard.querySelectorAll('.order-item');
-        orderItems.forEach(item => {
-            const clonedItem = item.cloneNode(true);
-            itemsContainer.appendChild(clonedItem);
-        });
+    } else {
+        const item = transaction.items.item;
+        itemsHtml = `
+            <div class="order-item">
+                <img src="${item.image}" alt="${item.name}" class="order-item-image">
+                <div class="order-item-details">
+                    <h3 class="order-item-name">${item.name}</h3>
+                    <div class="order-item-price">₱${parseFloat(item.price).toFixed(2)}</div>
+                    <div class="order-item-quantity">Quantity: ${item.quantity}</div>
+                </div>
+                <div class="order-item-total">₱${parseFloat(item.total).toFixed(2)}</div>
+            </div>
+        `;
     }
     
-    // Function to handle reordering
-    function reorderItems(transactionId) {
-        // In a real application, this would be an AJAX request to add items to cart
-        alert('Items from order have been added to your cart!');
+    modalBody.innerHTML = `
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Order Information</h3>
+            <div class="detail-row">
+                <span class="detail-label">Order ID:</span>
+                <span class="detail-value">#${transaction['@attributes'].order_id}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Date Ordered:</span>
+                <span class="detail-value">${formattedDate}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status:</span>
+                <span class="detail-value">
+                    <span class="order-status ${getStatusClass(transaction.status)}">${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}</span>
+                </span>
+            </div>
+        </div>
         
-        // Optionally redirect to cart page
-        // window.location.href = 'cart.php';
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Items Ordered</h3>
+            <div class="order-items">
+                ${itemsHtml}
+            </div>
+        </div>
+        
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Order Summary</h3>
+            <div class="order-summary">
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span>₱${parseFloat(transaction.subtotal || transaction.total_amount).toFixed(2)}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Delivery Fee:</span>
+                    <span>₱${parseFloat(transaction.delivery_fee || 0).toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Total:</span>
+                    <span>₱${parseFloat(transaction.total_amount).toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+        
+        ${transaction.delivery_address ? `
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Delivery Information</h3>
+            <div class="delivery-info">
+                <div class="delivery-info-title">Delivery Address</div>
+                <div>${transaction.delivery_address}</div>
+                ${transaction.delivery_notes ? `<div style="margin-top: 10px;"><strong>Notes:</strong> ${transaction.delivery_notes}</div>` : ''}
+            </div>
+        </div>
+        ` : ''}
+    `;
+    
+    orderModal.classList.add('show');
+}
+
+// Show order tracking
+function showOrderTracking(transaction, orderId) {
+    const status = transaction.status.toLowerCase();
+    
+    // Define tracking steps
+    const steps = [
+        { id: 'pending', label: 'Order Received', icon: '📝' },
+        { id: 'approved', label: 'Order Approved', icon: '✅' },
+        { id: 'processing', label: 'Preparing', icon: '👨‍🍳' },
+        { id: 'shipping', label: 'Out for Delivery', icon: '🚚' },
+        { id: 'delivered', label: 'Delivered', icon: '📦' }
+    ];
+    
+    // Calculate progress
+    let currentStepIndex = steps.findIndex(step => step.id === status);
+    if (currentStepIndex === -1 && status === 'completed') {
+        currentStepIndex = steps.length - 1; // Treat completed as delivered
     }
+    
+    const progressPercentage = currentStepIndex >= 0 ? ((currentStepIndex + 1) / steps.length) * 100 : 0;
+    
+    let stepsHtml = '';
+    steps.forEach((step, index) => {
+        const isCompleted = index < currentStepIndex;
+        const isActive = index === currentStepIndex;
+        const stepClass = isCompleted ? 'completed' : (isActive ? 'active' : '');
+        const labelClass = isCompleted || isActive ? 'active' : '';
+        
+        stepsHtml += `
+            <div class="progress-step">
+                <div class="step-icon ${stepClass}">${step.icon}</div>
+                <div class="step-label ${labelClass}">${step.label}</div>
+            </div>
+        `;
+    });
+    
+    trackingModalBody.innerHTML = `
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Order #${orderId}</h3>
+            <div class="detail-row">
+                <span class="detail-label">Current Status:</span>
+                <span class="detail-value">
+                    <span class="order-status ${getStatusClass(transaction.status)}">${transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}</span>
+                </span>
+            </div>
+        </div>
+        
+        <div class="tracking-progress">
+            <div class="progress-title">Order Progress</div>
+            <div class="progress-bar">
+                <div class="progress-line">
+                    <div class="progress-line-fill" style="width: ${progressPercentage}%"></div>
+                </div>
+                ${stepsHtml}
+            </div>
+        </div>
+        
+        <div class="order-detail-section">
+            <h3 class="order-detail-section-title">Estimated Delivery</h3>
+            <div class="delivery-info">
+                <div class="delivery-info-title">Expected Delivery Time</div>
+                <div>${getEstimatedDelivery(status)}</div>
+            </div>
+        </div>
+    `;
+    
+    trackingModal.classList.add('show');
+}
+
+// Helper function to get status class
+function getStatusClass(status) {
+    switch (status.toLowerCase()) {
+        case 'completed':
+        case 'delivered':
+            return 'status-completed';
+        case 'processing':
+        case 'approved':
+        case 'shipping':
+            return 'status-processing';
+        case 'pending':
+            return 'status-pending';
+        case 'cancelled':
+            return 'status-cancelled';
+        default:
+            return 'status-default';
+    }
+}
+
+// Helper function to get estimated delivery time
+function getEstimatedDelivery(status) {
+    const now = new Date();
+    const estimatedTime = new Date(now.getTime() + (30 * 60000)); // Add 30 minutes
+    
+    switch (status.toLowerCase()) {
+        case 'pending':
+            return 'Waiting for approval (usually within 10-15 minutes)';
+        case 'approved':
+            return 'Preparation will begin shortly (1-2 hours)';
+        case 'processing':
+            return 'Currently being prepared (15-20 minutes remaining)';
+        case 'shipping':
+            return `Expected delivery: ${estimatedTime.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+        case 'delivered':
+        case 'completed':
+            return 'Order has been delivered!';
+        default:
+            return 'Estimated delivery time will be updated soon';
+    }
+}
+
+// Items toggle functionality
+document.querySelectorAll('.items-toggle').forEach(button => {
+    button.addEventListener('click', function() {
+        const orderId = this.getAttribute('data-order-id');
+        const itemsList = this.closest('.order-card').querySelector('.order-items-list');
+        
+        if (itemsList) {
+            itemsList.classList.toggle('open');
+            this.classList.toggle('open');
+            
+            const isOpen = itemsList.classList.contains('open');
+            const itemCount = this.textContent.match(/\d+/)[0];
+            this.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="${isOpen ? '6 9 12 15 18 9' : '9 18 15 12 9 6'}"></polyline>
+                </svg>
+                ${isOpen ? 'Show less' : `${itemCount} more item${itemCount > 1 ? 's' : ''}`}
+            `;
+        }
+    });
+});
 </script>
+
 </body>
 </html>

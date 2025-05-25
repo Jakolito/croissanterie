@@ -1,153 +1,98 @@
 <?php
+include('connect.php');
 session_start();
+
+// Check if admin is logged in
 if (!isset($_SESSION['admin'])) {
-  header("Location: login.php");
-  exit();
+    header("Location: login.php");
+    exit();
 }
 
-// Get admin information from database
-require_once 'connect.php';
-
-$admin_username = $_SESSION['admin'];
-$stmt = $conn->prepare("SELECT id, fullname, profile_picture, email FROM admin WHERE username = ?");
-$stmt->bind_param("s", $admin_username);
-$stmt->execute();
-$result = $stmt->get_result();
-
-if ($result->num_rows > 0) {
-  $row = $result->fetch_assoc();
-  $admin_id = $row['id'];
-  $admin_fullname = $row['fullname'];
-  $admin_profile = $row['profile_picture'];
-  $admin_email = $row['email'];
-} else {
-  // This shouldn't happen if session is valid, but handle gracefully
-  $admin_id = 1;
-  $admin_fullname = $admin_username;
-  $admin_profile = '';
-  $admin_email = '';
-}
-$stmt->close();
-
+$admin_email = $_SESSION['admin'];
 $success_message = '';
 $error_message = '';
 
+// Fetch current admin data
+$query = "SELECT * FROM admin WHERE email = ?";
+$stmt = mysqli_prepare($conn, $query);
+mysqli_stmt_bind_param($stmt, "s", $admin_email);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
+$admin_data = mysqli_fetch_assoc($result);
+
 // Handle form submission
-if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
-    $update_fields = [];
-    $update_values = [];
-    $update_types = "";
-    
-    // Validate and sanitize input data
-    $new_fullname = isset($_POST['fullname']) ? trim($_POST['fullname']) : '';
-    $new_email = isset($_POST['email']) ? trim($_POST['email']) : '';
-    $new_password = isset($_POST['new_password']) ? $_POST['new_password'] : '';
-    $confirm_password = isset($_POST['confirm_password']) ? $_POST['confirm_password'] : '';
-    $current_password = isset($_POST['current_password']) ? $_POST['current_password'] : '';
-    
-    // Check if fullname needs to be updated
-    if (!empty($new_fullname) && $new_fullname !== $admin_fullname) {
-        if (strlen($new_fullname) < 2) {
-            $error_message = "Full name must be at least 2 characters long.";
-        } elseif (!preg_match('/^[a-zA-Z\s\.-]+$/', $new_fullname)) {
-            $error_message = "Full name can only contain letters, spaces, dots, and hyphens.";
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    if (isset($_POST['update_profile'])) {
+        $new_username = mysqli_real_escape_string($conn, htmlspecialchars($_POST['username']));
+        $new_email = mysqli_real_escape_string($conn, htmlspecialchars($_POST['email']));
+        $new_fullname = mysqli_real_escape_string($conn, htmlspecialchars($_POST['fullname']));
+        
+        // Check if email already exists (excluding current admin)
+        $check_email = "SELECT * FROM admin WHERE email = ? AND email != ?";
+        $stmt_check = mysqli_prepare($conn, $check_email);
+        mysqli_stmt_bind_param($stmt_check, "ss", $new_email, $admin_email);
+        mysqli_stmt_execute($stmt_check);
+        $email_result = mysqli_stmt_get_result($stmt_check);
+        
+        if (mysqli_num_rows($email_result) > 0) {
+            $error_message = "Email already exists!";
         } else {
-            $update_fields[] = "fullname = ?";
-            $update_values[] = $new_fullname;
-            $update_types .= "s";
-        }
-    }
-    
-    // Check if email needs to be updated
-    if (!empty($new_email) && $new_email !== $admin_email) {
-        if (!filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
-            $error_message = "Please enter a valid email address.";
-        } else {
-            // Check if email already exists for other admins
-            $stmt = $conn->prepare("SELECT id FROM admin WHERE email = ? AND id != ?");
-            $stmt->bind_param("si", $new_email, $admin_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
+            // Update profile information
+            $update_query = "UPDATE admin SET username = ?, email = ?, fullname = ? WHERE email = ?";
+            $stmt_update = mysqli_prepare($conn, $update_query);
+            mysqli_stmt_bind_param($stmt_update, "ssss", $new_username, $new_email, $new_fullname, $admin_email);
             
-            if ($result->num_rows > 0) {
-                $error_message = "This email is already used by another admin.";
+            if (mysqli_stmt_execute($stmt_update)) {
+                $_SESSION['admin'] = $new_email;
+                $_SESSION['admin_username'] = $new_username;
+                $success_message = "Profile updated successfully!";
+                
+                // Refresh admin data
+                $admin_email = $new_email;
+                $query = "SELECT * FROM admin WHERE email = ?";
+                $stmt = mysqli_prepare($conn, $query);
+                mysqli_stmt_bind_param($stmt, "s", $admin_email);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $admin_data = mysqli_fetch_assoc($result);
             } else {
-                $update_fields[] = "email = ?";
-                $update_values[] = $new_email;
-                $update_types .= "s";
+                $error_message = "Error updating profile!";
             }
-            $stmt->close();
         }
     }
     
     // Handle password change
-    if (!empty($new_password)) {
-        if (empty($current_password)) {
-            $error_message = "Current password is required when changing password.";
-        } elseif ($new_password !== $confirm_password) {
-            $error_message = "New password and confirmation do not match.";
-        } elseif (strlen($new_password) < 3) {
-            $error_message = "New password must be at least 3 characters long.";
-        } else {
-            // Verify current password
-            $stmt = $conn->prepare("SELECT passwords FROM admin WHERE id = ?");
-            $stmt->bind_param("i", $admin_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            $admin_data = $result->fetch_assoc();
-            $stmt->close();
-            
-            if ($admin_data['passwords'] !== $current_password) {
-                $error_message = "Current password is incorrect.";
+    if (isset($_POST['change_password'])) {
+        $current_password = $_POST['current_password'];
+        $new_password = $_POST['new_password'];
+        $confirm_password = $_POST['confirm_password'];
+        
+        // Verify current password
+        if (password_verify($current_password, $admin_data['passwords']) || $current_password === $admin_data['passwords']) {
+            if ($new_password === $confirm_password) {
+                if (strlen($new_password) >= 6) {
+                    $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+                    
+                    $update_password = "UPDATE admin SET passwords = ? WHERE email = ?";
+                    $stmt_password = mysqli_prepare($conn, $update_password);
+                    mysqli_stmt_bind_param($stmt_password, "ss", $hashed_password, $admin_email);
+                    
+                    if (mysqli_stmt_execute($stmt_password)) {
+                        $success_message = "Password changed successfully!";
+                    } else {
+                        $error_message = "Error changing password!";
+                    }
+                } else {
+                    $error_message = "Password must be at least 6 characters long!";
+                }
             } else {
-                $update_fields[] = "passwords = ?";
-                $update_values[] = $new_password;
-                $update_types .= "s";
+                $error_message = "New passwords do not match!";
             }
-        }
-    }
-    
-    // Execute update if there are fields to update and no errors
-    if (!empty($update_fields) && empty($error_message)) {
-        $update_query = "UPDATE admin SET " . implode(", ", $update_fields) . " WHERE id = ?";
-        $update_values[] = $admin_id;
-        $update_types .= "i";
-        
-        $stmt = $conn->prepare($update_query);
-        $stmt->bind_param($update_types, ...$update_values);
-        
-        if ($stmt->execute()) {
-            $success_message = "Settings updated successfully!";
-            
-            // Update local variables for display
-            if (isset($new_fullname) && !empty($new_fullname) && $new_fullname !== $admin_fullname) {
-                $admin_fullname = $new_fullname;
-            }
-            if (isset($new_email) && !empty($new_email) && $new_email !== $admin_email) {
-                $admin_email = $new_email;
-            }
-            
-            // Refresh admin data from database to ensure consistency
-            $stmt = $conn->prepare("SELECT fullname, email FROM admin WHERE id = ?");
-            $stmt->bind_param("i", $admin_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            if ($result->num_rows > 0) {
-                $updated_data = $result->fetch_assoc();
-                $admin_fullname = $updated_data['fullname'];
-                $admin_email = $updated_data['email'];
-            }
-            $stmt->close();
-            
         } else {
-            $error_message = "Failed to update settings. Please try again.";
+            $error_message = "Current password is incorrect!";
         }
-        $stmt->close();
-    } elseif (empty($update_fields) && empty($error_message)) {
-        $error_message = "No changes detected.";
     }
 }
-
 ?>
 
 <!DOCTYPE html>
@@ -162,119 +107,209 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
     .settings-container {
       max-width: 800px;
       margin: 0 auto;
-    }
-    
-    .settings-card {
-      background-color: #fff;
-      border-radius: 8px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-      margin-bottom: 20px;
-      overflow: hidden;
-    }
-    
-    .card-header {
-      background-color: #f8f9fa;
       padding: 20px;
+    }
+    
+    .profile-header {
+      text-align: center;
+      margin-bottom: 40px;
+      padding-bottom: 20px;
       border-bottom: 1px solid #dee2e6;
     }
     
-    .card-header h3 {
-      margin: 0;
+    .profile-avatar {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background-color: #8B4513;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: bold;
+      margin: 0 auto 20px;
+    }
+    
+    .profile-title {
+      font-size: 28px;
+      font-weight: 600;
       color: #343a40;
+      margin: 0 0 10px 0;
+    }
+    
+    .profile-subtitle {
+      color: #8B4513;
+      font-size: 16px;
+      margin: 0;
+    }
+    
+    .account-info-section {
+      background-color: #f8f9fa;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .section-title {
       font-size: 18px;
       font-weight: 600;
+      color: #343a40;
+      margin: 0 0 20px 0;
     }
     
-    .card-body {
-      padding: 20px;
-    }
-    
-    .admin-info-display {
-      background-color: #f8f9fa;
-      border: 1px solid #dee2e6;
-      border-radius: 6px;
-      padding: 15px;
-      margin-bottom: 25px;
-    }
-    
-    .admin-info-display h4 {
-      margin: 0 0 10px 0;
-      color: #495057;
-      font-size: 16px;
+    .info-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 15px;
     }
     
     .info-item {
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid #dee2e6;
+      flex-direction: column;
+      gap: 5px;
     }
     
-    .info-item:last-child {
-      border-bottom: none;
+    .info-item.full-width {
+      grid-column: 1 / -1;
     }
     
     .info-label {
       font-weight: 600;
       color: #6c757d;
-      min-width: 100px;
+      font-size: 14px;
     }
     
     .info-value {
       color: #495057;
       font-weight: 500;
+      font-size: 14px;
     }
     
-    .form-group {
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-active {
+      background-color: #d4edda;
+      color: #155724;
+    }
+    
+    .status-verified {
+      background-color: #d1ecf1;
+      color: #0c5460;
+    }
+    
+    .form-section {
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+      padding: 25px;
+      margin-bottom: 25px;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
       margin-bottom: 20px;
     }
     
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .form-group.full-width {
+      grid-column: 1 / -1;
+    }
+    
     .form-group label {
-      display: block;
-      margin-bottom: 5px;
+      font-size: 14px;
       font-weight: 600;
       color: #495057;
+      margin: 0;
+    }
+    
+    .required {
+      color: #dc3545;
     }
     
     .form-control {
-      width: 100%;
-      padding: 10px 15px;
+      padding: 12px 15px;
       border: 1px solid #ced4da;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 14px;
-      transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+      transition: all 0.15s ease-in-out;
       box-sizing: border-box;
     }
     
     .form-control:focus {
       outline: none;
-      border-color: #80bdff;
-      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      border-color: #8B4513;
+      box-shadow: 0 0 0 0.2rem rgba(139, 69, 19, 0.25);
     }
     
-    .form-control:disabled {
-      background-color: #e9ecef;
-      opacity: 1;
+    .password-help {
+      font-size: 12px;
+      color: #6c757d;
+      margin-bottom: 20px;
+    }
+    
+    .password-requirement {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #dc3545;
+      margin-top: 5px;
+    }
+    
+    .password-requirement.valid {
+      color: #28a745;
+    }
+    
+    .password-match {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: #dc3545;
+      margin-top: 5px;
+    }
+    
+    .password-match.valid {
+      color: #28a745;
     }
     
     .btn {
-      padding: 10px 20px;
+      padding: 12px 24px;
       border: none;
-      border-radius: 4px;
+      border-radius: 6px;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: background-color 0.15s ease-in-out;
+      transition: all 0.15s ease-in-out;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
     
     .btn-primary {
-      background-color: #007bff;
+      background-color: #8B4513;
       color: white;
     }
     
     .btn-primary:hover {
-      background-color: #0056b3;
+      background-color: #6d3410;
+      transform: translateY(-1px);
     }
     
     .btn-secondary {
@@ -284,13 +319,24 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
     
     .btn-secondary:hover {
       background-color: #545b62;
+      transform: translateY(-1px);
+    }
+    
+    .btn-group {
+      display: flex;
+      gap: 15px;
+      justify-content: flex-start;
+      margin-top: 20px;
     }
     
     .alert {
-      padding: 12px 15px;
-      margin-bottom: 20px;
+      padding: 15px 20px;
+      margin-bottom: 25px;
       border: 1px solid transparent;
-      border-radius: 4px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
     
     .alert-success {
@@ -305,87 +351,27 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
       border-color: #f5c6cb;
     }
     
-    .profile-upload-section {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 20px;
-    }
-    
-    .current-profile {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      object-fit: cover;
-      border: 3px solid #dee2e6;
-    }
-    
-    .default-profile {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background-color: #f8f9fa;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 3px solid #dee2e6;
-    }
-    
-    .default-profile i {
-      font-size: 30px;
-      color: #6c757d;
-    }
-    
-    .upload-controls {
-      flex: 1;
-    }
-    
-    .file-input {
-      margin-bottom: 10px;
-    }
-    
-    .password-section {
-      border-top: 1px solid #dee2e6;
-      padding-top: 20px;
-      margin-top: 20px;
-    }
-    
-    .password-section h4 {
-      margin-bottom: 15px;
-      color: #343a40;
-      font-size: 16px;
-    }
-    
-    .form-row {
-      display: flex;
-      gap: 15px;
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    .form-help {
-      font-size: 12px;
-      color: #6c757d;
-      margin-top: 5px;
-    }
-    
     @media (max-width: 768px) {
+      .settings-container {
+        padding: 15px;
+      }
+      
       .form-row {
-        flex-direction: column;
-        gap: 0;
+        grid-template-columns: 1fr;
+        gap: 15px;
       }
       
-      .profile-upload-section {
-        flex-direction: column;
-        text-align: center;
+      .info-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
       }
       
-      .info-item {
+      .btn-group {
         flex-direction: column;
-        align-items: flex-start;
-        gap: 5px;
+      }
+      
+      .btn {
+        justify-content: center;
       }
     }
   </style>
@@ -450,101 +436,92 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
       </div>
     </div>
 
-    <div class="dashboard-content">
+    <div class="content">
       <div class="settings-container">
         
-        <!-- Display Messages -->
-        <?php if (!empty($success_message)): ?>
-          <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
-          </div>
-        <?php endif; ?>
-        
-        <?php if (!empty($error_message)): ?>
-          <div class="alert alert-danger">
-            <i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($error_message); ?>
-          </div>
-        <?php endif; ?>
-
-        <!-- Current Admin Information Display -->
-        <div class="settings-card">
-          <div class="card-header">
-            <h3><i class="fas fa-user"></i> Current Admin Information</h3>
-          </div>
-          <div class="card-body">
-            <div class="admin-info-display">
-              <div class="info-item">
-                <span class="info-label">Username:</span>
-                <span class="info-value"><?php echo htmlspecialchars($admin_username); ?></span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Full Name:</span>
-                <span class="info-value"><?php echo htmlspecialchars($admin_fullname); ?></span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Email:</span>
-                <span class="info-value"><?php echo htmlspecialchars($admin_email); ?></span>
-              </div>
-            </div>
-          </div>
+        <!-- Profile Header -->
+        <div class="profile-header">
+          <div class="profile-avatar"><?php echo strtoupper(substr($admin_data['username'], 0, 1)); ?></div>
+          <h1 class="profile-title">My Profile</h1>
+          <p class="profile-subtitle">Manage your account information and settings</p>
         </div>
 
+        <!-- Success/Error Messages -->
+        <?php if ($success_message): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i>
+                <?php echo $success_message; ?>
+            </div>
+        <?php endif; ?>
 
-        <!-- Account Information Section -->
-        <div class="settings-card">
-          <div class="card-header">
-            <h3><i class="fas fa-edit"></i> Update Account Information</h3>
-          </div>
-          <div class="card-body">
-            <form method="POST">
+        <?php if ($error_message): ?>
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle"></i>
+                <?php echo $error_message; ?>
+            </div>
+        <?php endif; ?>
+
+        
+
+        <!-- Profile Information Form -->
+        <div class="form-section">
+          <form method="POST" action="">
+            <div class="form-row">
               <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" id="username" class="form-control" value="<?php echo htmlspecialchars($admin_username); ?>" disabled>
-                <div class="form-help">Username cannot be changed</div>
+                <label for="username">Username <span class="required">*</span></label>
+                <input type="text" id="username" name="username" class="form-control" value="<?php echo htmlspecialchars($admin_data['username']); ?>" required>
               </div>
-              
               <div class="form-group">
                 <label for="fullname">Full Name</label>
-                <input type="text" id="fullname" name="fullname" class="form-control" value="<?php echo htmlspecialchars($admin_fullname); ?>" required>
-                <div class="form-help">Enter your full name</div>
+                <input type="text" id="fullname" name="fullname" class="form-control" value="<?php echo htmlspecialchars($admin_data['fullname'] ?? ''); ?>">
               </div>
-              
-              <div class="form-group">
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($admin_email); ?>" required>
-                <div class="form-help">Enter a valid email address</div>
-              </div>
-              
-              <div class="password-section">
-                <h4>Change Password (Optional)</h4>
-                <p style="color: #6c757d; margin-bottom: 15px;">Leave password fields empty if you don't want to change your password.</p>
-                
-                <div class="form-row">
-                  <div class="form-group">
-                    <label for="new_password">New Password</label>
-                    <input type="password" id="new_password" name="new_password" class="form-control" minlength="3">
-                    <div class="form-help">Minimum 3 characters</div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="confirm_password">Confirm New Password</label>
-                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" minlength="3">
-                    <div class="form-help">Must match new password</div>
-                  </div>
-                </div>
-                
-                <div class="form-group">
-                  <label for="current_password">Current Password</label>
-                  <input type="password" id="current_password" name="current_password" class="form-control">
-                  <div class="form-help">Required when changing password</div>
-                </div>
-              </div>
-              
-              <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Save Changes
+            </div>
+            <div class="form-group full-width">
+              <label for="email">Email Address <span class="required">*</span></label>
+              <input type="email" id="email" name="email" class="form-control" value="<?php echo htmlspecialchars($admin_data['email']); ?>" required>
+            </div>
+            <div class="btn-group">
+              <button type="submit" name="update_profile" class="btn btn-primary">
+                <i class="fas fa-save"></i> Update Profile
               </button>
-            </form>
-          </div>
+              <button type="button" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Change Password Form -->
+        <div class="form-section">
+          <h2 class="section-title">Change Password</h2>
+          <p class="password-help">Leave password fields empty if you don't want to change your password</p>
+          
+          <form method="POST" action="">
+            <div class="form-group full-width">
+              <label for="current_password">Current Password</label>
+              <input type="password" id="current_password" name="current_password" class="form-control">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" class="form-control">
+                <div class="password-requirement" id="password-requirement">
+                  <i class="fas fa-times-circle"></i> Minimum 6 characters required
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="confirm_password">Confirm New Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control">
+                <div class="password-match" id="password-match" style="display: none;">
+                  <i class="fas fa-times-circle"></i> Passwords do not match
+                </div>
+              </div>
+            </div>
+            <div class="btn-group">
+              <button type="submit" name="change_password" class="btn btn-primary">
+                <i class="fas fa-key"></i> Change Password
+              </button>
+              <button type="button" class="btn btn-secondary">Cancel</button>
+            </div>
+          </form>
         </div>
 
       </div>
@@ -552,28 +529,84 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && !isset($_POST['upload_profile'])) {
   </div>
 
   <script>
-    // Password confirmation validation
-    document.getElementById('confirm_password').addEventListener('input', function() {
-      const newPassword = document.getElementById('new_password').value;
-      const confirmPassword = this.value;
+    // Real-time password validation
+    const newPasswordInput = document.getElementById('new_password');
+    const confirmPasswordInput = document.getElementById('confirm_password');
+    const passwordRequirement = document.getElementById('password-requirement');
+    const passwordMatch = document.getElementById('password-match');
+
+    // Check password length in real-time
+    newPasswordInput.addEventListener('input', function() {
+      const password = this.value;
+      const requirement = document.getElementById('password-requirement');
       
-      if (newPassword !== confirmPassword && confirmPassword !== '') {
-        this.setCustomValidity('Passwords do not match');
+      if (password.length >= 6) {
+        requirement.classList.add('valid');
+        requirement.innerHTML = '<i class="fas fa-check-circle"></i> Password meets minimum requirement';
       } else {
-        this.setCustomValidity('');
+        requirement.classList.remove('valid');
+        requirement.innerHTML = '<i class="fas fa-times-circle"></i> Minimum 6 characters required';
+      }
+
+      // Also check password match when new password changes
+      checkPasswordMatch();
+    });
+
+    // Check password match in real-time
+    confirmPasswordInput.addEventListener('input', checkPasswordMatch);
+
+    function checkPasswordMatch() {
+      const newPassword = newPasswordInput.value;
+      const confirmPassword = confirmPasswordInput.value;
+      const matchIndicator = document.getElementById('password-match');
+
+      if (confirmPassword.length > 0) {
+        matchIndicator.style.display = 'flex';
+        
+        if (newPassword === confirmPassword && newPassword.length > 0) {
+          matchIndicator.classList.add('valid');
+          matchIndicator.innerHTML = '<i class="fas fa-check-circle"></i> Passwords match';
+        } else {
+          matchIndicator.classList.remove('valid');
+          matchIndicator.innerHTML = '<i class="fas fa-times-circle"></i> Passwords do not match';
+        }
+      } else {
+        matchIndicator.style.display = 'none';
+      }
+    }
+
+    // Enhanced form validation
+    document.querySelector('form')?.addEventListener('submit', function(e) {
+      const form = e.target;
+      if (form.querySelector('[name="change_password"]')) {
+        const newPassword = document.getElementById('new_password').value;
+        const confirmPassword = document.getElementById('confirm_password').value;
+        
+        if (newPassword && newPassword !== confirmPassword) {
+          e.preventDefault();
+          alert('New passwords do not match!');
+          return false;
+        }
+        
+        if (newPassword && newPassword.length < 6) {
+          e.preventDefault();
+          alert('Password must be at least 6 characters long!');
+          return false;
+        }
       }
     });
-    
-    document.getElementById('new_password').addEventListener('input', function() {
-      const confirmPassword = document.getElementById('confirm_password');
-      const newPassword = this.value;
-      
-      if (newPassword !== confirmPassword.value && confirmPassword.value !== '') {
-        confirmPassword.setCustomValidity('Passwords do not match');
-      } else {
-        confirmPassword.setCustomValidity('');
-      }
-    });
+
+    // Auto-hide alerts after 5 seconds
+    setTimeout(function() {
+      const alerts = document.querySelectorAll('.alert');
+      alerts.forEach(function(alert) {
+        alert.style.opacity = '0';
+        alert.style.transition = 'opacity 0.5s';
+        setTimeout(function() {
+          alert.remove();
+        }, 500);
+      });
+    }, 5000);
   </script>
 </body>
 </html>

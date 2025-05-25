@@ -516,7 +516,7 @@
       <name>Vanilla Bean Strawberry Bliss</name>
       <price>250</price>
       <description> "A delightful cake featuring layers of vanilla bean sponge with fresh strawberry filling, topped with vanilla buttercream."</description>
-      <image>uploads/pic1.jpg</image>
+      <image>uploads/pic1.png</image>
     </product>
     <product>
       <id>2</id>

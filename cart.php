@@ -11,10 +11,10 @@ if (!isset($_SESSION['user'])) {
 $user_id = $_SESSION['user'];
 
 // Path to the XML cart file
-$cartXmlPath = 'carts.xml';
+$cartXmlPath = 'C:\xampp\htdocs\PASTRY1\carts.xml';
 
 // Path to the products XML file
-$xmlPath = 'pastry.xml';
+$xmlPath = 'C:\xampp\htdocs\PASTRY1\pastry.xml';
 
 // Create or load the cart XML file
 if (!file_exists($cartXmlPath)) {

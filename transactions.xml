@@ -308,4 +308,48 @@
       </item>
     </items>
   </transaction>
+  <transaction id="TRANS17481875493636" order_id="order_52d91576fdaabe" user_id="gian" date="2025-05-25 17:39:09">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>pending</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff123 GONZALES</name>
+      <address>213</address>
+      <phone>09311226307</phone>
+      <email>jeffGONZALES@gmail.com</email>
+      <delivery_notes>123</delivery_notes>
+    </customer>
+    <items>
+      <item product_id="p004">
+        <name>Mini Cheese Pillows</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/pic4.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481876549244" order_id="order_bfb9f9a570aabe" user_id="jonathan" date="2025-05-25 17:40:54">
+    <payment_method>gcash</payment_method>
+    <total_amount>67.2</total_amount>
+    <status>pending</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p018">
+        <name>Cheese Stick</name>
+        <price>60</price>
+        <quantity>1</quantity>
+        <total>60</total>
+        <image>uploads/pic18.jpg</image>
+      </item>
+    </items>
+  </transaction>
 </transactions>

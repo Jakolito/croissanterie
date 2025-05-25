@@ -4,12 +4,6 @@
     
   </cart>
   <cart user_id="jonathan">
-    <item product_id="p018">
-      <quantity>1</quantity>
-      <image>uploads/pic18.jpg</image>
-      <name>Cheese Stick</name>
-      <price>60</price>
-    </item>
     <item product_id="p003">
       <quantity>1</quantity>
       <image>uploads/pic3.jpg</image>

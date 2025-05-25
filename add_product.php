@@ -3,8 +3,8 @@ include('connect.php');
 session_start();
 
 // XML file paths
-$xmlPath = 'C:\xampp\htdocs\PASTRY1\pastry.xml';
-$categoriesXmlPath = 'C:\xampp\htdocs\PASTRY1\categories.xml';
+$xmlPath = 'pastry.xml';
+$categoriesXmlPath = 'categories.xml';
 
 // Check if the XML files exist and are readable
 if (!file_exists($xmlPath)) {

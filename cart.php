@@ -7,13 +7,8 @@ if (!isset($_SESSION['user'])) {
     exit();
 }
 
-// Get the current user's ID
 $user_id = $_SESSION['user'];
-
-// Path to the XML cart file
 $cartXmlPath = 'carts.xml';
-
-// Path to the products XML file
 $xmlPath = 'pastry.xml';
 
 // Create or load the cart XML file

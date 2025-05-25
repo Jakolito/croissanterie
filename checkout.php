@@ -1,10 +1,6 @@
 <?php
 session_start();
 
-// Enable error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
 // Check if user is logged in, redirect to login if not
 if (!isset($_SESSION['user'])) {
     header("Location: login.php");
@@ -15,115 +11,68 @@ if (!isset($_SESSION['user'])) {
 $user_id = $_SESSION['user'];
 $user_name = $_SESSION['fname'] . ' ' . $_SESSION['lname'];
 
-// Path to the XML files
+// Path to the XML cart file
 $cartXmlPath = 'carts.xml';
-$xmlPath = 'pastry.xml';
-$transactionsXmlPath = 'transactions.xml';
 
-// Debug function to log errors
-function debugLog($message) {
-    $timestamp = date('Y-m-d H:i:s');
-    $logMessage = "[$timestamp] $message" . PHP_EOL;
-    file_put_contents('checkout_debug.log', $logMessage, FILE_APPEND | LOCK_EX);
-}
+// Path to the products XML file
+$xmlPath = 'pastry.xml';
+
+// Path to the transactions XML file
+$transactionsXmlPath = 'transactions.xml';
 
 // Function to format XML with proper indentation
 function formatXML($xml) {
-    try {
-        $dom = new DOMDocument('1.0', 'UTF-8');
-        $dom->preserveWhiteSpace = false;
-        $dom->formatOutput = true;
-        $dom->loadXML($xml->asXML());
-        return $dom->saveXML();
-    } catch (Exception $e) {
-        debugLog("Error formatting XML: " . $e->getMessage());
-        return $xml->asXML();
-    }
+    $dom = new DOMDocument('1.0');
+    $dom->preserveWhiteSpace = false;
+    $dom->formatOutput = true;
+    $dom->loadXML($xml->asXML());
+    return $dom->saveXML();
 }
 
-// Create or load the transactions XML file with better error handling
-function initializeTransactionsXML($transactionsXmlPath) {
-    try {
-        if (!file_exists($transactionsXmlPath)) {
-            debugLog("Transactions XML file doesn't exist, creating new one");
-            $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-            
-            // Ensure directory exists
-            $dir = dirname($transactionsXmlPath);
-            if (!is_dir($dir)) {
-                mkdir($dir, 0755, true);
-            }
-            
-            // Check if file is writable
-            if (!is_writable($dir)) {
-                debugLog("Directory $dir is not writable");
-                throw new Exception("Directory is not writable");
-            }
-            
-            $result = file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
-            if ($result === false) {
-                debugLog("Failed to create transactions XML file");
-                throw new Exception("Could not create transactions file");
-            }
-            debugLog("Successfully created transactions XML file");
-        } else {
-            debugLog("Loading existing transactions XML file");
-            $transactionsXml = @simplexml_load_file($transactionsXmlPath);
-            if ($transactionsXml === false) {
-                debugLog("Failed to load existing XML, recreating");
-                $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
-                file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
-            }
-        }
-        return $transactionsXml;
-    } catch (Exception $e) {
-        debugLog("Error initializing transactions XML: " . $e->getMessage());
-        throw $e;
+// Create or load the transactions XML file
+if (!file_exists($transactionsXmlPath)) {
+    $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
+    file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+} else {
+    // Try to load the file, if it fails, create a new one
+    $transactionsXml = @simplexml_load_file($transactionsXmlPath);
+    if ($transactionsXml === false) {
+        // File exists but is invalid, recreate it
+        $transactionsXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><transactions></transactions>');
+        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
     }
-}
-
-// Initialize transactions XML
-try {
-    $transactionsXml = initializeTransactionsXML($transactionsXmlPath);
-} catch (Exception $e) {
-    die("Error: Could not initialize transactions file. Please check file permissions.");
 }
 
 // Load product data from XML file
 $pastries = [];
 if (file_exists($xmlPath)) {
     $file = simplexml_load_file($xmlPath);
-    if ($file !== false) {
-        foreach ($file->pastry as $row) {
-            if (!isset($row['id'])) {
-                $row->addAttribute('id', uniqid());
-            }
-            $pastries[(string)$row['id']] = $row;
+    foreach ($file->pastry as $row) {
+        // Add ID if it doesn't exist
+        if (!isset($row['id'])) {
+            $row->addAttribute('id', uniqid());
         }
+        $pastries[(string)$row['id']] = $row;
     }
 }
 
 // Load cart data
+$cartsXml = simplexml_load_file($cartXmlPath);
 $userCart = null;
-if (file_exists($cartXmlPath)) {
-    $cartsXml = simplexml_load_file($cartXmlPath);
-    if ($cartsXml !== false) {
-        foreach ($cartsXml->cart as $cart) {
-            if ((string)$cart['user_id'] === $user_id) {
-                $userCart = $cart;
-                break;
-            }
-        }
+foreach ($cartsXml->cart as $cart) {
+    if ((string)$cart['user_id'] === $user_id) {
+        $userCart = $cart;
+        break;
     }
 }
 
 // Check if items were selected from cart page
 $selectedItems = [];
-$isSelectedCheckout = false;
 if (isset($_SESSION['selected_items']) && !empty($_SESSION['selected_items'])) {
     $selectedItems = $_SESSION['selected_items'];
     $isSelectedCheckout = true;
-    debugLog("Selected checkout with items: " . implode(', ', $selectedItems));
+} else {
+    $isSelectedCheckout = false;
 }
 
 // Create checkout items array for display
@@ -138,7 +87,6 @@ if ($userCart !== null) {
         
         // Skip if product doesn't exist in products XML
         if (!isset($pastries[$product_id])) {
-            debugLog("Product $product_id not found in pastries XML");
             continue;
         }
         
@@ -183,183 +131,123 @@ $paymentSuccess = false;
 $transaction_id = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    debugLog("POST request received");
-    
     if (isset($_POST['process_payment'])) {
-        debugLog("Processing payment");
+        $payment_method = $_POST['payment_method'];
         
-        try {
-            // Validate form data
-            $required_fields = ['payment_method', 'customer_name', 'customer_address', 'customer_phone', 'customer_email'];
-            foreach ($required_fields as $field) {
-                if (empty($_POST[$field])) {
-                    throw new Exception("Required field '$field' is missing");
+        // Get customer details from form
+        $customer_name = $_POST['customer_name'];
+        $customer_address = $_POST['customer_address'];
+        $customer_phone = $_POST['customer_phone'];
+        $customer_email = $_POST['customer_email'];
+        $delivery_notes = $_POST['delivery_notes'];
+        
+        // Generate transaction ID
+        $transaction_id = 'TRANS' . time() . rand(1000, 9999);
+        
+        // Create new transaction record in XML
+        $transaction = $transactionsXml->addChild('transaction');
+        $transaction->addAttribute('id', $transaction_id);
+        $transaction->addAttribute('order_id', $order_id);
+        $transaction->addAttribute('user_id', $user_id);
+        $transaction->addAttribute('date', date('Y-m-d H:i:s'));
+        
+        // Add transaction details
+        $transaction->addChild('payment_method', $payment_method);
+        $transaction->addChild('total_amount', $total);
+        $transaction->addChild('status', 'pending'); // This is already correct - ensure status is "pending"
+        $transaction->addChild('payment_status', 'paid'); // Add a separate payment status field
+        
+        // Add customer details to transaction
+        $customer = $transaction->addChild('customer');
+        $customer->addChild('name', $customer_name);
+        $customer->addChild('address', $customer_address);
+        $customer->addChild('phone', $customer_phone);
+        $customer->addChild('email', $customer_email);
+        $customer->addChild('delivery_notes', $delivery_notes);
+        
+        // Add items to transaction
+        $items = $transaction->addChild('items');
+        foreach ($checkoutItems as $item) {
+            $transItem = $items->addChild('item');
+            $transItem->addAttribute('product_id', $item['id']);
+            
+            // Add complete item details including name, price, quantity, total and image
+            $transItem->addChild('name', $item['name']);
+            $transItem->addChild('price', $item['price']);
+            $transItem->addChild('quantity', $item['quantity']);
+            $transItem->addChild('total', $item['total']);
+            $transItem->addChild('image', $item['image']);
+        }
+        
+        // Save transaction to XML file with proper formatting
+        file_put_contents($transactionsXmlPath, formatXML($transactionsXml));
+        
+        // Remove purchased items from cart
+        if ($userCart !== null) {
+            // Create a copy of items to iterate through
+            $itemsToRemove = [];
+            
+            foreach ($userCart->item as $index => $item) {
+                $product_id = (string)$item['product_id'];
+                
+                // Skip if product doesn't exist in products XML
+                if (!isset($pastries[$product_id])) {
+                    continue;
                 }
-            }
-            
-            $payment_method = $_POST['payment_method'];
-            $customer_name = $_POST['customer_name'];
-            $customer_address = $_POST['customer_address'];
-            $customer_phone = $_POST['customer_phone'];
-            $customer_email = $_POST['customer_email'];
-            $delivery_notes = isset($_POST['delivery_notes']) ? $_POST['delivery_notes'] : '';
-            
-            debugLog("Form data validated successfully");
-            
-            // Generate transaction ID
-            $transaction_id = 'TRANS' . time() . rand(1000, 9999);
-            debugLog("Generated transaction ID: $transaction_id");
-            
-            // Reload transactions XML to ensure we have the latest version
-            $transactionsXml = initializeTransactionsXML($transactionsXmlPath);
-            
-            // Create new transaction record in XML
-            $transaction = $transactionsXml->addChild('transaction');
-            $transaction->addAttribute('id', $transaction_id);
-            $transaction->addAttribute('order_id', $order_id);
-            $transaction->addAttribute('user_id', $user_id);
-            $transaction->addAttribute('date', date('Y-m-d H:i:s'));
-            
-            // Add transaction details
-            $transaction->addChild('payment_method', htmlspecialchars($payment_method));
-            $transaction->addChild('total_amount', $total);
-            $transaction->addChild('status', 'pending');
-            $transaction->addChild('payment_status', 'paid');
-            
-            debugLog("Added basic transaction details");
-            
-            // Add customer details to transaction
-            $customer = $transaction->addChild('customer');
-            $customer->addChild('name', htmlspecialchars($customer_name));
-            $customer->addChild('address', htmlspecialchars($customer_address));
-            $customer->addChild('phone', htmlspecialchars($customer_phone));
-            $customer->addChild('email', htmlspecialchars($customer_email));
-            $customer->addChild('delivery_notes', htmlspecialchars($delivery_notes));
-            
-            debugLog("Added customer details");
-            
-            // Add items to transaction
-            $items = $transaction->addChild('items');
-            foreach ($checkoutItems as $item) {
-                $transItem = $items->addChild('item');
-                $transItem->addAttribute('product_id', $item['id']);
                 
-                $transItem->addChild('name', htmlspecialchars($item['name']));
-                $transItem->addChild('price', $item['price']);
-                $transItem->addChild('quantity', $item['quantity']);
-                $transItem->addChild('total', $item['total']);
-                $transItem->addChild('image', htmlspecialchars($item['image']));
-            }
-            
-            debugLog("Added " . count($checkoutItems) . " items to transaction");
-            
-            // Save transaction to XML file with proper formatting
-            $xmlContent = formatXML($transactionsXml);
-            $result = file_put_contents($transactionsXmlPath, $xmlContent, LOCK_EX);
-            
-            if ($result === false) {
-                throw new Exception("Failed to save transaction to XML file");
-            }
-            
-            debugLog("Successfully saved transaction to XML file (bytes written: $result)");
-            
-            // Verify the file was written correctly
-            if (file_exists($transactionsXmlPath)) {
-                $fileSize = filesize($transactionsXmlPath);
-                debugLog("Transaction file exists, size: $fileSize bytes");
+                // Check if item should be removed
+                $shouldRemove = false;
                 
-                // Try to reload and verify
-                $verifyXML = @simplexml_load_file($transactionsXmlPath);
-                if ($verifyXML !== false) {
-                    $transactionCount = count($verifyXML->transaction);
-                    debugLog("Verification successful: $transactionCount transactions in file");
+                if ($isSelectedCheckout) {
+                    // If doing selected checkout, only remove items that were selected
+                    if (in_array($product_id, $selectedItems)) {
+                        $shouldRemove = true;
+                    }
                 } else {
-                    debugLog("Warning: Could not verify saved XML file");
-                }
-            }
-            
-            // Remove purchased items from cart
-            if ($userCart !== null && file_exists($cartXmlPath)) {
-                $cartsXml = simplexml_load_file($cartXmlPath);
-                
-                // Find user cart again (reload from file)
-                $userCart = null;
-                foreach ($cartsXml->cart as $cart) {
-                    if ((string)$cart['user_id'] === $user_id) {
-                        $userCart = $cart;
-                        break;
+                    // If doing "checkout all", remove all items that are in checkout
+                    foreach ($checkoutItems as $checkoutItem) {
+                        if ($checkoutItem['id'] === $product_id) {
+                            $shouldRemove = true;
+                            break;
+                        }
                     }
                 }
                 
-                if ($userCart !== null) {
-                    $itemsToRemove = [];
-                    
-                    foreach ($userCart->item as $item) {
-                        $product_id = (string)$item['product_id'];
-                        
-                        if (!isset($pastries[$product_id])) {
-                            continue;
-                        }
-                        
-                        $shouldRemove = false;
-                        
-                        if ($isSelectedCheckout) {
-                            if (in_array($product_id, $selectedItems)) {
-                                $shouldRemove = true;
-                            }
-                        } else {
-                            foreach ($checkoutItems as $checkoutItem) {
-                                if ($checkoutItem['id'] === $product_id) {
-                                    $shouldRemove = true;
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        if ($shouldRemove) {
-                            $itemsToRemove[] = $item;
-                        }
-                    }
-                    
-                    // Remove the items
-                    foreach ($itemsToRemove as $itemToRemove) {
-                        $dom = dom_import_simplexml($itemToRemove);
-                        $dom->parentNode->removeChild($dom);
-                    }
-                    
-                    // Save changes to cart XML file
-                    $cartResult = file_put_contents($cartXmlPath, formatXML($cartsXml), LOCK_EX);
-                    debugLog("Updated cart file (bytes written: $cartResult)");
+                if ($shouldRemove) {
+                    $itemsToRemove[] = $item;
                 }
             }
             
-            // Clear selected items session
-            if (isset($_SESSION['selected_items'])) {
-                unset($_SESSION['selected_items']);
+            // Now remove the items
+            foreach ($itemsToRemove as $itemToRemove) {
+                $dom = dom_import_simplexml($itemToRemove);
+                $dom->parentNode->removeChild($dom);
             }
             
-            // Set payment success flag
-            $paymentSuccess = true;
-            
-            debugLog("Payment processing completed successfully");
-            
-            // Redirect based on payment method
-            if ($payment_method === 'gcash') {
-                $_SESSION['order_id'] = $order_id;
-                $_SESSION['total_amount'] = $total;
-                $_SESSION['transaction_id'] = $transaction_id;
-                debugLog("Redirecting to GCash payment");
-                header("Location: gcash_payment.php");
-                exit();
-            } else {
-                debugLog("Redirecting to order confirmation");
-                header("Location: order_confirmation.php?order_id=" . $order_id);
-                exit();
-            }
-            
-        } catch (Exception $e) {
-            debugLog("Error processing payment: " . $e->getMessage());
-            $error_message = "Error processing your order: " . $e->getMessage();
+            // Save changes to cart XML file with proper formatting
+            file_put_contents($cartXmlPath, formatXML($cartsXml));
+        }
+        
+        // Clear selected items session
+        if (isset($_SESSION['selected_items'])) {
+            unset($_SESSION['selected_items']);
+        }
+        
+        // Set payment success flag
+        $paymentSuccess = true;
+        
+        // Redirect to confirmation page or display confirmation
+        if ($payment_method === 'gcash') {
+            // Show GCash payment screen
+            $_SESSION['order_id'] = $order_id;
+            $_SESSION['total_amount'] = $total;
+            $_SESSION['transaction_id'] = $transaction_id;
+            header("Location: gcash_payment.php");
+            exit();
+        } else {
+            // Redirect to confirmation page
+            header("Location: order_confirmation.php?order_id=" . $order_id);
+            exit();
         }
     }
 }
@@ -372,29 +260,263 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Checkout - La Croissanterie</title>
     <link rel="stylesheet" href="cart.css">
-    <style>
-        .debug-info {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
-            font-family: monospace;
-            font-size: 12px;
+     <style>
+        .checkout-container {
+            display: flex;
+            flex-direction: column;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            gap: 30px;
         }
-        .debug-info h4 {
-            margin: 0 0 10px 0;
-            color: #495057;
+        
+        @media (min-width: 992px) {
+            .checkout-container {
+                flex-direction: row;
+                align-items: flex-start;
+            }
+            
+            .checkout-items {
+                flex: 3;
+            }
+            
+            .checkout-form {
+                flex: 2;
+            }
         }
-        .error-message {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            border-radius: 5px;
-            padding: 15px;
-            margin: 20px 0;
+        
+        .checkout-items {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .checkout-form {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            padding: 70px;
+            position: sticky;
+            top: 20px;
+        }
+        
+        .order-items {
+            margin-bottom: 20px;
+        }
+        
+        .order-item {
+            display: flex;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .order-item:last-child {
+            border-bottom: none;
+        }
+        
+        .order-item-image {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-right: 15px;
+        }
+        
+        .order-item-details {
+            flex: 1;
+        }
+        
+        .order-item-name {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
+        .order-item-price {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .order-item-quantity {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .order-item-total {
+            font-weight: 600;
+            font-size: 1.1rem;
+            align-self: center;
+            padding-left: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+        
+        .form-check {
+            margin-bottom: 10px;
+        }
+        
+        .form-check-input {
+            margin-right: 10px;
+        }
+        
+        .payment-methods {
+            margin-top: 20px;
+        }
+        
+        .payment-method {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border: 1px solid #eee;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .payment-method:hover {
+            background-color: #f9f9f9;
+        }
+        
+        .payment-method.selected {
+            border-color: #4a6fa1;
+            background-color: #f0f5ff;
+        }
+        
+        .payment-method input {
+            margin-right: 10px;
+        }
+        
+        .payment-method-logo {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-right: 15px;
+        }
+        
+        .payment-method-details {
+            flex: 1;
+        }
+        
+        .payment-method-name {
+            font-weight: 600;
+        }
+        
+        .payment-method-description {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .empty-checkout {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .empty-checkout-icon {
+            margin-bottom: 20px;
+        }
+        
+        .empty-checkout-icon svg {
+            width: 64px;
+            height: 64px;
+            color: #999;
+        }
+        
+        .empty-checkout h2 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .empty-checkout p {
+            color: #666;
+            margin-bottom: 20px;
+        }
+         /* Cart badge */
+        .cart-badge {
+          background-color: var(--accent-color);
+          color: white;
+          font-size: 12px;
+          width: 20px;
+          height: 20px;
+          border-radius: 50%;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          margin-left: 5px;
+        }
+        
+        /* Checkout form sections */
+        .checkout-section {
+            border-bottom: 1px solid #eee;
+            padding-bottom: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .checkout-section:last-child {
+            border-bottom: none;
+        }
+        
+        .checkout-section-title {
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+        }
+        
+        .checkout-section-title svg {
+            margin-right: 10px;
+            color: #4a6fa1;
+        }
+        
+        .form-row {
+            display: flex;
+            flex-wrap: wrap;
+            margin: 0 -10px;
+        }
+        
+        .form-col {
+            flex: 1;
+            padding: 0 10px;
+            min-width: 200px;
+        }
+        
+        @media (max-width: 768px) {
+            .form-col {
+                flex-basis: 100%;
+                margin-bottom: 15px;
+            }
+        }
+        
+        textarea.form-control {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .required-field::after {
+            content: "*";
+            color: #e74c3c;
+            margin-left: 4px;
         }
     </style>
+   
 </head>
 <body>
 <header>
@@ -407,7 +529,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <span class="logo-text">La Croissanterie</span>
     </div>
     
-    <nav>
+      <nav>
       <ul class="main-nav">
         <li><a href="menu2.php">Menu</a></li>
         <li><a href="cart.php">Cart <span class="cart-badge" id="cartCount"><?php echo $totalItems; ?></span></a></li>
@@ -437,33 +559,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 </header>
 
+
 <div class="container">
     <h1 class="page-title">Checkout</h1>
-    
-    <?php if (isset($error_message)): ?>
-    <div class="error-message">
-        <?php echo htmlspecialchars($error_message); ?>
-    </div>
-    <?php endif; ?>
-    
-    <!-- Debug Information (remove in production) -->
-    <div class="debug-info">
-        <h4>Debug Information:</h4>
-        <p><strong>Transactions XML Path:</strong> <?php echo $transactionsXmlPath; ?></p>
-        <p><strong>File Exists:</strong> <?php echo file_exists($transactionsXmlPath) ? 'Yes' : 'No'; ?></p>
-        <p><strong>File Writable:</strong> <?php echo is_writable(dirname($transactionsXmlPath)) ? 'Yes' : 'No'; ?></p>
-        <p><strong>User ID:</strong> <?php echo htmlspecialchars($user_id); ?></p>
-        <p><strong>Checkout Items Count:</strong> <?php echo count($checkoutItems); ?></p>
-        <p><strong>Is Selected Checkout:</strong> <?php echo $isSelectedCheckout ? 'Yes' : 'No'; ?></p>
-        <?php if (file_exists($transactionsXmlPath)): ?>
-            <p><strong>File Size:</strong> <?php echo filesize($transactionsXmlPath); ?> bytes</p>
-            <?php 
-            $testXML = @simplexml_load_file($transactionsXmlPath);
-            if ($testXML !== false): ?>
-                <p><strong>Current Transaction Count:</strong> <?php echo count($testXML->transaction); ?></p>
-            <?php endif; ?>
-        <?php endif; ?>
-    </div>
     
     <?php if (empty($checkoutItems)): ?>
     <div class="empty-checkout">
@@ -595,6 +693,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <div class="payment-method-description">Pay securely with your GCash account</div>
                                 </div>
                             </div>
+                            
+                            
                         </div>
                     </div>
                     
@@ -628,508 +728,143 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" name="process_payment" class="btn primary-btn" style="width: 100%; padding: 12px; margin-top: 20px;">Place Order</button>
                     <button type="button" class="btn secondary-btn prev-step" onclick="prevStep()" style="width: 100%; padding: 12px; margin-top: 10px;">Back to Information</button>
                 </div>
-                </div>
             </form>
         </div>
     </div>
+    
+    <script>
+    function nextStep() {
+        document.getElementById('step1').classList.remove('active');
+        document.getElementById('step2').classList.add('active');
+    }
+    
+    function prevStep() {
+        document.getElementById('step2').classList.remove('active');
+        document.getElementById('step1').classList.add('active');
+    }
+    </script>
+    
+    <style>
+    .checkout-step {
+        display: none;
+    }
+    
+    .checkout-step.active {
+        display: block;
+    }
+    </style>
+    
     <?php endif; ?>
 </div>
-
+<!-- Logout Confirmation Modal -->
+<div class="modal" id="logoutModal">
+  <div class="modal-content logout-modal-content">
+    <span class="modal-close" id="closeLogoutModal">&times;</span>
+    <div class="logout-modal-body">
+      <h3>Confirm Logout</h3>
+      <p>Are you sure you want to logout?</p>
+      <div class="logout-modal-buttons">
+        <button class="cancel-btn" id="cancelLogout">Cancel</button>
+        <button class="confirm-btn" id="confirmLogout">Logout</button>
+      </div>
+    </div>
+  </div>
+</div>
 <footer>
-    <div class="footer-container">
-        <div class="footer-section">
-            <h3>La Croissanterie</h3>
-            <p>Freshly baked pastries made with love and the finest ingredients.</p>
-        </div>
-        <div class="footer-section">
-            <h4>Quick Links</h4>
-            <ul>
-                <li><a href="menu2.php">Menu</a></li>
-                <li><a href="cart.php">Cart</a></li>
-                <li><a href="order_history.php">Order History</a></li>
-            </ul>
-        </div>
-        <div class="footer-section">
-            <h4>Contact</h4>
-            <p>Email: info@lacroissanterie.com</p>
-            <p>Phone: (02) 8123-4567</p>
-        </div>
+  <div class="footer-content">
+    <div class="footer-section">
+      <h3>La Croissanterie</h3>
+      <p>Quality baked goods made with love and care. Bringing Japanese-inspired treats to your neighborhood.</p>
     </div>
-    <div class="footer-bottom">
-        <p>&copy; 2024 La Croissanterie. All rights reserved.</p>
+    <div class="footer-section">
+      <h3>Quick Links</h3>
+      <ul>
+        <li><a href="#">Home</a></li>
+        <li><a href="#">Products</a></li>
+        <li><a href="#">Franchising</a></li>
+        <li><a href="#">Contact Us</a></li>
+      </ul>
     </div>
+    <div class="footer-section">
+      <h3>Contact</h3>
+      <ul>
+        <li>Email: info@pogishop.com</li>
+        <li>Phone: +63 123 456 7890</li>
+        <li>Address: 123 Bakery Street, Manila</li>
+      </ul>
+    </div>
+  </div>
+  <div class="copyright">
+    &copy; 2025 Pogi Shop. All rights reserved.
+  </div>
 </footer>
 
 <script>
-// Form validation and checkout flow
-document.addEventListener('DOMContentLoaded', function() {
-    // Profile dropdown functionality
-    const profileDropdown = document.getElementById('profileDropdown');
-    const profileMenu = document.getElementById('profileMenu');
-    
-    if (profileDropdown && profileMenu) {
-        profileDropdown.addEventListener('click', function(e) {
-            e.stopPropagation();
-            profileMenu.classList.toggle('show');
-        });
-        
-        document.addEventListener('click', function() {
-            profileMenu.classList.remove('show');
-        });
-    }
-    
-    // Form validation
-    const form = document.getElementById('checkoutForm');
-    if (form) {
-        form.addEventListener('submit', function(e) {
-            if (!validateForm()) {
-                e.preventDefault();
-                return false;
-            }
-            
-            // Show loading state
-            const submitBtn = form.querySelector('button[type="submit"]');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.innerHTML = 'Processing...';
-            }
-        });
-    }
-    
-    // Phone number formatting
-    const phoneInput = document.getElementById('customerPhone');
-    if (phoneInput) {
-        phoneInput.addEventListener('input', function(e) {
-            let value = e.target.value.replace(/\D/g, '');
-            if (value.length > 11) {
-                value = value.slice(0, 11);
-            }
-            if (value.length >= 4) {
-                value = value.replace(/(\d{4})(\d{3})(\d{4})/, '$1-$2-$3');
-            }
-            e.target.value = value;
-        });
-    }
-    
-    // Email validation
-    const emailInput = document.getElementById('customerEmail');
-    if (emailInput) {
-        emailInput.addEventListener('blur', function(e) {
-            const email = e.target.value;
-            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-            
-            if (email && !emailRegex.test(email)) {
-                e.target.setCustomValidity('Please enter a valid email address');
-                e.target.classList.add('error');
-            } else {
-                e.target.setCustomValidity('');
-                e.target.classList.remove('error');
-            }
-        });
-    }
-});
-
-function nextStep() {
-    if (validateStep1()) {
-        document.getElementById('step1').classList.remove('active');
-        document.getElementById('step2').classList.add('active');
-        
-        // Update summary with customer info
-        updateOrderSummary();
-        
-        // Scroll to top
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-}
-
-function prevStep() {
-    document.getElementById('step2').classList.remove('active');
-    document.getElementById('step1').classList.add('active');
-    
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-
-function validateStep1() {
-    const requiredFields = [
-        'customer_name',
-        'customer_email', 
-        'customer_phone',
-        'customer_address'
-    ];
-    
-    let isValid = true;
-    
-    requiredFields.forEach(fieldName => {
-        const field = document.querySelector(`[name="${fieldName}"]`);
-        if (field) {
-            const value = field.value.trim();
-            
-            if (!value) {
-                field.classList.add('error');
-                showFieldError(field, 'This field is required');
-                isValid = false;
-            } else {
-                field.classList.remove('error');
-                hideFieldError(field);
-                
-                // Additional validation
-                if (fieldName === 'customer_email' && !isValidEmail(value)) {
-                    field.classList.add('error');
-                    showFieldError(field, 'Please enter a valid email address');
-                    isValid = false;
-                }
-                
-                if (fieldName === 'customer_phone' && !isValidPhone(value)) {
-                    field.classList.add('error');
-                    showFieldError(field, 'Please enter a valid phone number (11 digits)');
-                    isValid = false;
-                }
-            }
-        }
-    });
-    
-    return isValid;
-}
-
-function validateForm() {
-    return validateStep1();
-}
-
-function isValidEmail(email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-}
-
-function isValidPhone(phone) {
-    const cleaned = phone.replace(/\D/g, '');
-    return cleaned.length === 11 && cleaned.startsWith('09');
-}
-
-function showFieldError(field, message) {
-    hideFieldError(field);
-    
-    const errorDiv = document.createElement('div');
-    errorDiv.className = 'field-error';
-    errorDiv.textContent = message;
-    
-    field.parentNode.appendChild(errorDiv);
-}
-
-function hideFieldError(field) {
-    const existingError = field.parentNode.querySelector('.field-error');
-    if (existingError) {
-        existingError.remove();
-    }
-}
-
-function updateOrderSummary() {
-    // This could populate a summary preview in step 2
-    // For now, the summary is already displayed
-}
-
-// Payment method selection
-document.addEventListener('DOMContentLoaded', function() {
+    // Initialize payment method selection
     const paymentMethods = document.querySelectorAll('.payment-method');
     
     paymentMethods.forEach(method => {
         method.addEventListener('click', function() {
-            // Remove active class from all methods
-            paymentMethods.forEach(m => m.classList.remove('active'));
+            // Remove selected class from all methods
+            paymentMethods.forEach(m => m.classList.remove('selected'));
             
-            // Add active class to clicked method
-            this.classList.add('active');
+            // Add selected class to clicked method
+            this.classList.add('selected');
             
             // Check the radio button
             const radio = this.querySelector('input[type="radio"]');
-            if (radio) {
-                radio.checked = true;
-            }
+            radio.checked = true;
         });
     });
     
-    // Set initial active state
-    const checkedRadio = document.querySelector('input[name="payment_method"]:checked');
-    if (checkedRadio) {
-        const paymentMethod = checkedRadio.closest('.payment-method');
-        if (paymentMethod) {
-            paymentMethod.classList.add('active');
+    // Initially select the first payment method
+    paymentMethods[0].classList.add('selected');
+    
+    // Initialize profile dropdown functionality
+    const profileDropdown = document.getElementById('profileDropdown');
+    const profileMenu = document.getElementById('profileMenu');
+    
+    profileDropdown.addEventListener('click', () => {
+        profileMenu.classList.toggle('show');
+    });
+    
+    // Close dropdown when clicking outside
+    window.addEventListener('click', (e) => {
+        if (!e.target.closest('.profile-dropdown')) {
+            profileMenu.classList.remove('show');
         }
-    }
-});
+    });
+    
+    // Initialize logout modal functionality
+    const logoutBtn = document.getElementById('logoutBtn');
+    const logoutModal = document.getElementById('logoutModal');
+    const closeLogoutModal = document.getElementById('closeLogoutModal');
+    const cancelLogout = document.getElementById('cancelLogout');
+    const confirmLogout = document.getElementById('confirmLogout');
+    
+    logoutBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        logoutModal.classList.add('show');
+    });
+    
+    closeLogoutModal.addEventListener('click', () => {
+        logoutModal.classList.remove('show');
+    });
+    
+    cancelLogout.addEventListener('click', () => {
+        logoutModal.classList.remove('show');
+    });
+    
+    confirmLogout.addEventListener('click', () => {
+        window.location.href = 'homepage.php';
+    });
+    
+    // Close modal when clicking outside
+    logoutModal.addEventListener('click', (e) => {
+        if (e.target === logoutModal) {
+            logoutModal.classList.remove('show');
+        }
+    });
 </script>
-
-<style>
-/* Additional checkout-specific styles */
-.checkout-step {
-    display: none;
-}
-
-.checkout-step.active {
-    display: block;
-}
-
-.checkout-section {
-    background: white;
-    border-radius: 10px;
-    padding: 25px;
-    margin-bottom: 20px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-    border: 1px solid #e9ecef;
-}
-
-.checkout-section-title {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    font-size: 1.2em;
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 2px solid #f8d7a1;
-}
-
-.checkout-section-title svg {
-    color: #d4841c;
-}
-
-.form-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-}
-
-.form-group {
-    margin-bottom: 20px;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-    color: #333;
-}
-
-.required-field::after {
-    content: " *";
-    color: #dc3545;
-}
-
-.form-control {
-    width: 100%;
-    padding: 12px 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 8px;
-    font-size: 16px;
-    transition: border-color 0.3s ease;
-    box-sizing: border-box;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #d4841c;
-    box-shadow: 0 0 0 3px rgba(212, 132, 28, 0.1);
-}
-
-.form-control.error {
-    border-color: #dc3545;
-    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-}
-
-.field-error {
-    color: #dc3545;
-    font-size: 14px;
-    margin-top: 5px;
-    display: block;
-}
-
-.payment-methods {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.payment-method {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    border: 2px solid #e9ecef;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    background: white;
-}
-
-.payment-method:hover {
-    border-color: #d4841c;
-    background: #fef9f0;
-}
-
-.payment-method.active {
-    border-color: #d4841c;
-    background: #fef9f0;
-    box-shadow: 0 2px 10px rgba(212, 132, 28, 0.1);
-}
-
-.payment-method input[type="radio"] {
-    margin-right: 15px;
-    transform: scale(1.2);
-}
-
-.payment-method-logo {
-    width: 40px;
-    height: 40px;
-    margin-right: 15px;
-    object-fit: contain;
-}
-
-.payment-method-details {
-    flex: 1;
-}
-
-.payment-method-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 2px;
-}
-
-.payment-method-description {
-    color: #666;
-    font-size: 14px;
-}
-
-.order-items {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.order-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: #f8f9fa;
-    border-radius: 10px;
-    border: 1px solid #e9ecef;
-}
-
-.order-item-image {
-    width: 60px;
-    height: 60px;
-    object-fit: cover;
-    border-radius: 8px;
-    margin-right: 15px;
-}
-
-.order-item-details {
-    flex: 1;
-}
-
-.order-item-name {
-    font-weight: 600;
-    color: #333;
-    margin-bottom: 5px;
-}
-
-.order-item-price {
-    color: #d4841c;
-    font-weight: 500;
-    margin-bottom: 3px;
-}
-
-.order-item-quantity {
-    color: #666;
-    font-size: 14px;
-}
-
-.order-item-total {
-    font-weight: 600;
-    color: #333;
-    font-size: 18px;
-}
-
-.empty-checkout {
-    text-align: center;
-    padding: 60px 20px;
-    background: white;
-    border-radius: 15px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-}
-
-.empty-checkout-icon {
-    margin-bottom: 20px;
-    opacity: 0.5;
-}
-
-.empty-checkout h2 {
-    color: #333;
-    margin-bottom: 10px;
-}
-
-.empty-checkout p {
-    color: #666;
-    margin-bottom: 30px;
-}
-
-.empty-checkout .btn {
-    margin: 0 10px;
-    display: inline-block;
-}
-
-/* Responsive design */
-@media (max-width: 768px) {
-    .checkout-container {
-        flex-direction: column;
-    }
-    
-    .checkout-items,
-    .checkout-form {
-        width: 100%;
-        margin-bottom: 20px;
-    }
-    
-    .form-row {
-        grid-template-columns: 1fr;
-        gap: 15px;
-    }
-    
-    .order-item {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .order-item-image {
-        margin: 0 0 10px 0;
-    }
-    
-    .order-item-total {
-        margin-top: 10px;
-    }
-}
-
-/* Step navigation buttons */
-.next-step,
-.prev-step {
-    font-size: 16px;
-    font-weight: 600;
-    border-radius: 8px;
-    transition: all 0.3s ease;
-}
-
-.next-step:hover,
-.prev-step:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-/* Loading state */
-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none !important;
-}
-</style>
-
 </body>
 </html>

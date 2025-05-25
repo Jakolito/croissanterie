@@ -546,7 +546,7 @@
         <?php if(!empty($admin_profile)): ?>
           <img src="<?php echo htmlspecialchars($admin_profile); ?>" alt="Profile" class="profile-pic">
         <?php endif; ?>
-        <span class="user-name"><?php echo htmlspecialchars($admin_fullname); ?></span>
+        
         <a href="#" onclick="confirmLogout()" class="logout-btn">Logout</a>
       </div>
     </div>

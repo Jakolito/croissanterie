@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <transactions>
-  <transaction id="TRANS17478340918002" order_id="order_821fb83e7caabe" user_id="gian" date="2025-05-21 15:28:11">
+  <transaction id="TRANS17478340918002" order_id="order_821fb83e7caabe" user_id="gian" date="2025-05-15 15:28:11">
     <payment_method>gcash</payment_method>
     <total_amount>728</total_amount>
     <status>approved</status>
@@ -22,10 +22,10 @@
       </item>
     </items>
   </transaction>
-  <transaction id="TRANS17478396555550" order_id="order_c5e42683a1aabe" user_id="gian" date="2025-05-21 17:00:55">
+  <transaction id="TRANS17478396555550" order_id="order_c5e42683a1aabe" user_id="gian" date="2025-05-16 17:00:55">
     <payment_method>gcash</payment_method>
     <total_amount>44.8</total_amount>
-    <status>pending</status>
+    <status>approved</status>
     <payment_status>paid</payment_status>
     <customer>
       <name>jeff GONZALES</name>
@@ -41,6 +41,248 @@
         <quantity>1</quantity>
         <total>40</total>
         <image>uploads/d2.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481547858519" order_id="order_4695bfacf0aabe" user_id="jonathan" date="2025-05-18 08:33:05">
+    <payment_method>gcash</payment_method>
+    <total_amount>112</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan,Bulacan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p015">
+        <name>Japanese Chocolate Roll</name>
+        <price>50</price>
+        <quantity>2</quantity>
+        <total>100</total>
+        <image>uploads/pic15.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481548161598" order_id="order_b7bcc266b3aabe" user_id="jonathan" date="2025-05-19 08:33:36">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan.Bulacan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p003">
+        <name>Mini Floss Pillows</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/pic3.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481548544930" order_id="order_ea449abf34aabe" user_id="jonathan" date="2025-05-20 08:34:14">
+    <payment_method>gcash</payment_method>
+    <total_amount>179.2</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan,Bulacan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p019">
+        <name>Whole Wheat Loaf</name>
+        <price>160</price>
+        <quantity>1</quantity>
+        <total>160</total>
+        <image>uploads/pic19.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481548774850" order_id="order_c0a5c6ffc4aabe" user_id="jonathan" date="2025-05-21 08:34:37">
+    <payment_method>gcash</payment_method>
+    <total_amount>448</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan,Bulacan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p006">
+        <name>Ube Coco Brookie Pizza</name>
+        <price>400</price>
+        <quantity>1</quantity>
+        <total>400</total>
+        <image>uploads/pic6.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481550033539" order_id="order_20026bde19aabe" user_id="jonathan" date="2025-05-22 08:36:43">
+    <payment_method>gcash</payment_method>
+    <total_amount>112</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jonathan damasco</name>
+      <address>Pulilan,Bulacan</address>
+      <phone>09311226307</phone>
+      <email>jonathandamasco123456@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p017">
+        <name>Cranberry Cheese Roll (3pcs)</name>
+        <price>100</price>
+        <quantity>1</quantity>
+        <total>100</total>
+        <image>uploads/pic17.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481562882682" order_id="order_7b3cbf6a76aabe" user_id="jamille" date="2025-05-23 08:58:08">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jamille bumanglag</name>
+      <address>Makinabang,Baliwag</address>
+      <phone>09311226307</phone>
+      <email>bumanglagjamille@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p003">
+        <name>Mini Floss Pillows</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/pic3.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481563344909" order_id="order_699c8d13b9aabe" user_id="jamille" date="2025-05-23 08:58:54">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jamille bumanglag</name>
+      <address>Baliwag</address>
+      <phone>0931122630</phone>
+      <email>bumanglagjamille@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p011">
+        <name>Choco Messy Bun</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/pic11.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481563572537" order_id="order_cf42ffd312aabe" user_id="jamille" date="2025-05-18 08:59:17">
+    <payment_method>gcash</payment_method>
+    <total_amount>448</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jamille bumanglag</name>
+      <address>Baliwag</address>
+      <phone>09311226307</phone>
+      <email>bumanglagjamille@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p006">
+        <name>Ube Coco Brookie Pizza</name>
+        <price>400</price>
+        <quantity>1</quantity>
+        <total>400</total>
+        <image>uploads/pic6.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481563809877" order_id="order_c70eee6a00aabe" user_id="jamille" date="2025-05-19 08:59:40">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jamille bumanglag</name>
+      <address>Baliwag</address>
+      <phone>09311226307</phone>
+      <email>bumanglagjamille@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p002">
+        <name>Cherry Blossom Bun</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/d2.jpg</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481564629700" order_id="order_3e8b75e7f7aabe" user_id="gian" date="2025-05-20 09:01:02">
+    <payment_method>gcash</payment_method>
+    <total_amount>728</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff123 GONZALES</name>
+      <address>Pampanga</address>
+      <phone>09311226307</phone>
+      <email>jeffgiangonzales47@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p001">
+        <name>Vanilla Bean Strawberry Bliss</name>
+        <price>650</price>
+        <quantity>1</quantity>
+        <total>650</total>
+        <image>uploads/pic1.png</image>
+      </item>
+    </items>
+  </transaction>
+  <transaction id="TRANS17481564819326" order_id="order_a5b6f37153aabe" user_id="gian" date="2025-05-22 09:01:21">
+    <payment_method>gcash</payment_method>
+    <total_amount>728</total_amount>
+    <status>approved</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff123 GONZALES</name>
+      <address>Pampanga</address>
+      <phone>09311226307</phone>
+      <email>jeffgiangonzales47@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p010">
+        <name>Coffee Caramel Chiffon (6 inches)</name>
+        <price>650</price>
+        <quantity>1</quantity>
+        <total>650</total>
+        <image>uploads/pic10.jpg</image>
       </item>
     </items>
   </transaction>

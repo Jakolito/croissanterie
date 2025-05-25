@@ -474,7 +474,6 @@ $users = $conn->query($query);
     <div class="header">
       <h1 class="page-title">Registered Users</h1>
       <div class="user-info">
-        <span class="user-name">Admin User</span>
         <a href="#" onclick="confirmLogout()" class="logout-btn">Logout</a>
 
         <script>

@@ -1,22 +1,26 @@
 <?php
 include('connect.php');
 session_start();
+// Check if admin is logged in
+if (!isset($_SESSION['admin'])) {
+    header("Location: login.php");
+    exit();
+}
 
-// XML file path
+
 $xmlPath = 'C:\xampp\htdocs\PASTRY1\pastry.xml';
 $file = file_exists($xmlPath) ? simplexml_load_file($xmlPath) : null;
 
-// Categories XML file path - we'll store categories separately for better persistence
+
 $categoriesXmlPath = 'C:\xampp\htdocs\PASTRY1\categories.xml';
 
-// Load or create categories XML file
+
 if (file_exists($categoriesXmlPath)) {
     $categoriesXml = simplexml_load_file($categoriesXmlPath);
 } else {
-    // Create new categories XML structure if file doesn't exist
+   
     $categoriesXml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?><categories></categories>');
-    
-    // Add categories from pastry.xml if available
+   
     if ($file !== false && $file !== null) {
         $existingCategories = [];
         foreach ($file->pastry as $row) {
@@ -28,28 +32,28 @@ if (file_exists($categoriesXmlPath)) {
         }
     }
     
-    // Save the new categories XML file
+    
     $categoriesXml->asXML($categoriesXmlPath);
 }
 
-// Collect categories from the categories XML
+
 $categories = [];
 foreach ($categoriesXml->category as $category) {
     $categories[] = trim((string) $category);
 }
 
-// Handle category add functionality
+
 if (isset($_POST['add_category'])) {
     $newCategory = trim($_POST['new_category']);
     
     if (!empty($newCategory) && !in_array($newCategory, $categories)) {
-        // Add to our PHP array first
+        
         $categories[] = $newCategory;
         
-        // Add to XML structure
+        
         $categoriesXml->addChild('category', $newCategory);
         
-        // Save updated XML
+        
         $categoriesXml->asXML($categoriesXmlPath);
         
         $_SESSION['message'] = "New category '$newCategory' added successfully!";
@@ -284,8 +288,8 @@ function updateInventoryOnApproval($transaction_id) {
         <div class="header">
             <h1 class="page-title">Product Management</h1>
             <div class="user-info">
-                <span class="user-name">Admin User</span>
-                <a href="logout.php" class="logout-btn">Logout</a>
+                
+                <a href="#" onclick="confirmLogout()" class="logout-btn">Logout</a>
             </div>
         </div>
 
@@ -731,6 +735,11 @@ function updateInventoryOnApproval($transaction_id) {
 
 <!-- JavaScript for Category Edit Functions -->
 <script>
+     function confirmLogout() {
+      if (confirm("Are you sure you want to logout?")) {
+        window.location.href = "logout.php";
+      }
+    }
     function showEditForm(categoryId) {
         // Hide the category name and show the edit form
         document.getElementById('category_' + categoryId).classList.add('d-none');

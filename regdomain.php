@@ -10,24 +10,68 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Verify reCAPTCHA
-    $recaptchaSecret = '6Lc3xS0rAAAAAN0DNhkuL6V8tn_JercdZnbjS1tJ'; // Replace with your secret key
-    $recaptchaResponse = $_POST['g-recaptcha-response'];
+    // Verify reCAPTCHA - Make sure these keys match your Google reCAPTCHA setup
+    $recaptchaSecret = '6LfCs0grAAAAAAwXSuf1uhrDXksUCqNgCU-5dmtU'; // Your SECRET key
+    $recaptchaSiteKey = '6LfCs0grAAAAACxDzkBpEJu5MeiUwg78Bc5217Yz'; // Your SITE key (used in HTML)
 
-    $verify = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$recaptchaSecret}&response={$recaptchaResponse}");
-    $responseData = json_decode($verify);
-
-    if (!$responseData->success) {
-        echo "<script>alert('reCAPTCHA validation failed. Please try again.'); window.location.href = 'register.php';</script>";
+    // Check if reCAPTCHA response exists
+    if (empty($_POST['g-recaptcha-response'])) {
+        echo "<script>alert('Please complete the reCAPTCHA verification.'); window.location.href = 'register.php';</script>";
         exit;
     }
 
-    $username = $_POST['username'];
-    $first_name = $_POST['first-name'];
-    $last_name = $_POST['last-name'];
-    $email = $_POST['email'];
+    $recaptchaResponse = $_POST['g-recaptcha-response'];
+    $remoteIp = $_SERVER['REMOTE_ADDR'];
+
+    // Verify reCAPTCHA with additional parameters
+    $verifyURL = "https://www.google.com/recaptcha/api/siteverify";
+    $data = array(
+        'secret' => $recaptchaSecret,
+        'response' => $recaptchaResponse,
+        'remoteip' => $remoteIp
+    );
+
+    $options = array(
+        'http' => array(
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => http_build_query($data)
+        )
+    );
+
+    $context = stream_context_create($options);
+    $verify = file_get_contents($verifyURL, false, $context);
+    $responseData = json_decode($verify);
+
+    // Debug: uncomment the line below to see the reCAPTCHA response
+    // echo "<script>console.log('reCAPTCHA Response: " . json_encode($responseData) . "');</script>";
+
+    if (!$responseData->success) {
+        $errorMessage = "reCAPTCHA validation failed.";
+        if (isset($responseData->{'error-codes'})) {
+            $errorCodes = $responseData->{'error-codes'};
+            if (in_array('invalid-input-secret', $errorCodes)) {
+                $errorMessage .= " Invalid secret key.";
+            } elseif (in_array('invalid-input-response', $errorCodes)) {
+                $errorMessage .= " Invalid response token.";
+            } elseif (in_array('bad-request', $errorCodes)) {
+                $errorMessage .= " Bad request.";
+            } elseif (in_array('timeout-or-duplicate', $errorCodes)) {
+                $errorMessage .= " Token expired or already used.";
+            }
+        }
+        echo "<script>alert('{$errorMessage} Please try again.'); window.location.href = 'register.php';</script>";
+        exit;
+    }
+
+    // Continue with user registration if reCAPTCHA is valid
+    $username = trim($_POST['username']);
+    $first_name = trim($_POST['first-name']);
+    $last_name = trim($_POST['last-name']);
+    $email = trim($_POST['email']);
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
+    // Check if email already exists
     $check_email_query = "SELECT * FROM account WHERE email = ?";
     $check_email_stmt = mysqli_prepare($conn, $check_email_query);
     mysqli_stmt_bind_param($check_email_stmt, "s", $email);
@@ -97,10 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $mail->send();
             
-            // Store redirection preference in session
             $_SESSION['registration_success'] = true;
-            
-            // Direct redirection to verify.php instead of using confirm dialog
             header("Location: verify.php");
             exit;
             
@@ -112,7 +153,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<!-- HTML BELOW -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -140,14 +180,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     .header-container {
   display: flex;
-  justify-content: space-between; /* logo sa kaliwa, nav sa kanan */
+  justify-content: space-between;
   align-items: center;
   padding: 20px 50px;
   max-width: 1200px;
   margin: 0 auto;
   border-bottom: 1px solid #ddd;
 }
-
 
     header {
       display: flex;
@@ -178,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .nav-wrapper {
   flex: 1;
   display: flex;
-  justify-content: center; /* center align ang nav */
+  justify-content: center;
 }
 
 .main-nav {
@@ -283,7 +322,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         width: 100%;
         max-width: 600px;
-        margin: 120px auto 50px; /* Added top margin to account for fixed header */
+        margin: 120px auto 50px;
     }
 
     h2 {
@@ -350,6 +389,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         text-decoration: none;
     }
 
+    /* reCAPTCHA styling */
+    .recaptcha-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
+    }
+
     @media (max-width: 600px) {
         form {
             flex-direction: column;
@@ -369,7 +416,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .container {
-            margin-top: 180px; /* Increased for mobile layout */
+            margin-top: 180px;
         }
     }
 </style>
@@ -398,7 +445,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <div class="container">
         <h2>Registration</h2>
-        <form id="registerForm" method="post" onsubmit="return validatePasswords()">
+        <form id="registerForm" method="post" onsubmit="return validateForm()">
             <div class="form-group">
                 <label for="username">Username</label>
                 <input type="text" name="username" id="username" placeholder="Enter Username" required>
@@ -425,8 +472,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
 
             <!-- Google reCAPTCHA Widget -->
-            <div style="width:100%;">
-                <div class="g-recaptcha" data-sitekey="6Lc3xS0rAAAAAF5YBcvyg1L2ezRehsfHiPhB3p00"></div>
+            <div class="recaptcha-container">
+                <div class="g-recaptcha" data-sitekey="6LfCs0grAAAAACxDzkBpEJu5MeiUwg78Bc5217Yz"></div>
             </div>
 
             <div class="buttons">
@@ -442,7 +489,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
     <script>
-        function validatePasswords() {
+        function validateForm() {
+            // Check password match
             const password = document.getElementById("password").value;
             const confirmPassword = document.getElementById("confirmpassword").value;
 
@@ -451,6 +499,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 document.getElementById("confirmpassword").value = "";
                 return false;
             }
+
+            // Check reCAPTCHA
+            const recaptchaResponse = grecaptcha.getResponse();
+            if (recaptchaResponse.length === 0) {
+                alert("Please complete the reCAPTCHA verification.");
+                return false;
+            }
+
             return true;
         }
     </script>

@@ -625,7 +625,7 @@ $monthlySales = getMonthlySales($transactions);
         </div>
         
         <div class="modal-body">
-            <!-- Filter Section -->
+            
             <div class="filter-section">
                 <h5>Report Filters</h5>
                 <div class="filter-row">

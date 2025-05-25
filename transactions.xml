@@ -286,4 +286,26 @@
       </item>
     </items>
   </transaction>
+  <transaction id="TRANS17481831163761" order_id="order_934ebb8c48aabe" user_id="gian" date="2025-05-25 16:25:16">
+    <payment_method>gcash</payment_method>
+    <total_amount>44.8</total_amount>
+    <status>pending</status>
+    <payment_status>paid</payment_status>
+    <customer>
+      <name>jeff123 GONZALES</name>
+      <address>Pampanga</address>
+      <phone>09311226307</phone>
+      <email>jeffgiangonzales47@gmail.com</email>
+      <delivery_notes/>
+    </customer>
+    <items>
+      <item product_id="p003">
+        <name>Mini Floss Pillows</name>
+        <price>40</price>
+        <quantity>1</quantity>
+        <total>40</total>
+        <image>uploads/pic3.jpg</image>
+      </item>
+    </items>
+  </transaction>
 </transactions>

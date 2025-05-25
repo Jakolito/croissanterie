@@ -1,12 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <carts>
   <cart user_id="gian">
-    <item product_id="p003">
-      <quantity>1</quantity>
-      <image>uploads/pic3.jpg</image>
-      <name>Mini Floss Pillows</name>
-      <price>40</price>
-    </item>
     <item product_id="p005">
       <quantity>1</quantity>
       <image>uploads/pic5.jpg</image>

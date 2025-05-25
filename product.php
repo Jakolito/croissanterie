@@ -688,7 +688,7 @@ function updateInventoryOnApproval($transaction_id) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                    <form action="manage_categories.php" method="POST" style="display: inline;">
+                    <form action="delete_category.php" method="POST" style="display: inline;">
                         <input type="hidden" name="action" value="delete">
                         <input type="hidden" name="category_name" id="categoryNameToDelete">
                         <button type="submit" class="btn btn-danger">Delete Category</button>

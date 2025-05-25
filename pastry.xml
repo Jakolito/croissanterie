@@ -1,14 +1,5 @@
 <?xml version="1.0"?>
 <pastries>
-  <pastry id="p001">
-    <name>Vanilla Bean Strawberry Bliss</name>
-    <description>A delightful cake featuring layers of vanilla bean sponge with fresh strawberry filling, topped with vanilla buttercream.</description>
-    <producttype>Cakes</producttype>
-    <price>650</price>
-    <quantity>1</quantity>
-    <producttag>c1</producttag>
-    <image>uploads/pic1.png</image>
-  </pastry>
   <pastry id="p002">
     <name>Cherry Blossom Bun</name>
     <description>"Soft and fluffy bun with a sweet cherry filling, decorated with pink cherry blossom motif."</description>

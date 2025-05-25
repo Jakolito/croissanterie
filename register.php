@@ -10,9 +10,15 @@ use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Verify reCAPTCHA
-    $recaptchaSecret = '6Lc3xS0rAAAAAN0DNhkuL6V8tn_JercdZnbjS1tJ'; // Replace with your secret key
+    // Verify reCAPTCHA - UPDATE THESE KEYS WITH YOUR NEW ONES
+    $recaptchaSecret = 'YOUR_NEW_SECRET_KEY_HERE'; // Replace with your new secret key from Google reCAPTCHA
     $recaptchaResponse = $_POST['g-recaptcha-response'];
+
+    // Check if reCAPTCHA response exists
+    if (empty($recaptchaResponse)) {
+        echo "<script>alert('Please complete the reCAPTCHA verification.'); window.location.href = 'register.php';</script>";
+        exit;
+    }
 
     $verify = file_get_contents("https://www.google.com/recaptcha/api/siteverify?secret={$recaptchaSecret}&response={$recaptchaResponse}");
     $responseData = json_decode($verify);
@@ -28,6 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'];
     $password = password_hash($_POST['password'], PASSWORD_BCRYPT);
 
+    // Check if email already exists
     $check_email_query = "SELECT * FROM account WHERE email = ?";
     $check_email_stmt = mysqli_prepare($conn, $check_email_query);
     mysqli_stmt_bind_param($check_email_stmt, "s", $email);
@@ -83,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $mail->SMTPSecure = 'ssl';
             $mail->Port = 465;
 
-            $mail->setFrom('silverlinebank@gmail.com', 'Silverline Bank');
+            $mail->setFrom('silverlinebank@gmail.com', 'La Croissanterie');
             $mail->addAddress($email);
 
             $mail->isHTML(true);
@@ -112,13 +119,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 
-<!-- HTML BELOW -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Registration</title>
+<title>Registration - La Croissanterie</title>
 <link rel="stylesheet" href="style.css">
 <style>
      :root {
@@ -139,15 +145,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     .header-container {
-  display: flex;
-  justify-content: space-between; /* logo sa kaliwa, nav sa kanan */
-  align-items: center;
-  padding: 20px 50px;
-  max-width: 1200px;
-  margin: 0 auto;
-  border-bottom: 1px solid #ddd;
-}
-
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 50px;
+      max-width: 1200px;
+      margin: 0 auto;
+      border-bottom: 1px solid #ddd;
+    }
 
     header {
       display: flex;
@@ -173,20 +178,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     nav {
       display: flex;
-      align-items: 500px;
+      align-items: center;
     }
-    .nav-wrapper {
-  flex: 1;
-  display: flex;
-  justify-content: center; /* center align ang nav */
-}
 
-.main-nav {
-  display: flex;
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+    .nav-wrapper {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+    }
+
+    .main-nav {
+      display: flex;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
 
     .main-nav li {
       margin: 0 15px;
@@ -222,60 +228,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: var(--text-color);
     }
 
-    .hero {
-      display: flex;
-      height: 500px;
-      position: relative;
-    }
-
-    .hero-text {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      padding-left: 50px;
-      max-width: 50%;
-    }
-
-    .specialty {
-      font-size: 16px;
-      font-weight: 300;
-      margin-bottom: 10px;
-      color: #777;
-    }
-
-    .hero-title {
-      font-size: 4rem;
-      font-weight: 500;
-      margin-bottom: 30px;
-    }
-
-    .cta-button {
-      background-color: var(--accent-color);
-      border: none;
-      color: var(--text-color);
-      padding: 12px 30px;
-      font-size: 16px;
-      cursor: pointer;
-      transition: background-color 0.3s;
-      width: fit-content;
-    }
-
-    .cta-button:hover {
-      background-color: #dbc8b0;
-    }
-
-    .login a {
-      text-decoration: none;
-      color: var(--text-color);
-      font-weight: 400;
-      transition: color 0.3s;
-    }
-
-    .login a:hover {
-      color: var(--accent-color);
-    }
-
     .container {
         background: #fff;
         padding: 30px 40px;
@@ -283,7 +235,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         width: 100%;
         max-width: 600px;
-        margin: 120px auto 50px; /* Added top margin to account for fixed header */
+        margin: 120px auto 50px;
     }
 
     h2 {
@@ -317,6 +269,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         font-size: 16px;
         border-radius: 5px;
         border: 1px solid #ccc;
+        transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+        outline: none;
+        border-color: var(--accent-color);
+    }
+
+    .recaptcha-container {
+        width: 100%;
+        display: flex;
+        justify-content: center;
+        margin: 20px 0;
     }
 
     .buttons {
@@ -333,10 +300,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         border-radius: 6px;
         cursor: pointer;
         transition: background-color 0.3s;
+        min-width: 120px;
     }
 
     .next-button:hover {
         background-color: #4d382a;
+    }
+
+    .next-button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
     }
 
     .footer-text {
@@ -348,6 +321,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         color: #A59D84;
         font-weight: bold;
         text-decoration: none;
+        transition: color 0.3s;
+    }
+
+    .footer-text a:hover {
+        color: var(--dark-color);
+    }
+
+    .error-message {
+        color: #e74c3c;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+    }
+
+    .success-message {
+        color: #27ae60;
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
     }
 
     @media (max-width: 600px) {
@@ -369,8 +361,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         .container {
-            margin-top: 180px; /* Increased for mobile layout */
+            margin-top: 180px;
+            padding: 20px;
         }
+
+        .header-container {
+            padding: 10px 20px;
+        }
+    }
+
+    /* Loading state styles */
+    .loading {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    .loading::after {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 20px;
+        height: 20px;
+        margin: -10px 0 0 -10px;
+        border: 2px solid #f3f3f3;
+        border-top: 2px solid #A59D84;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 </style>
 </head>
@@ -393,66 +415,163 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <li><a href="login.php">Login</a></li>
       </ul>
     </nav>
-    </div>
-</header>
+  </header>
+</div>
 
-    <div class="container">
-        <h2>Registration</h2>
-        <form id="registerForm" method="post" onsubmit="return validatePasswords()">
-            <div class="form-group">
-                <label for="username">Username</label>
-                <input type="text" name="username" id="username" placeholder="Enter Username" required>
-            </div>
-            <div class="form-group">
-                <label for="first-name">First Name</label>
-                <input type="text" name="first-name" id="first-name" placeholder="Enter First Name" required>
-            </div>
-            <div class="form-group">
-                <label for="last-name">Last Name</label>
-                <input type="text" name="last-name" id="last-name" placeholder="Enter Last Name" required>
-            </div>
-            <div class="form-group">
-                <label for="email">Email </label>
-                <input type="email" name="email" id="email" placeholder="Enter Email Address" required>
-            </div>
-            <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" name="password" id="password" placeholder="Enter Password" required>
-            </div>
-            <div class="form-group">
-                <label for="confirmpassword">Confirm Password</label>
-                <input type="password" name="confirmpassword" id="confirmpassword" placeholder="Confirm Password" required>
-            </div>
+<div class="container">
+    <h2>Registration</h2>
+    <form id="registerForm" method="post" onsubmit="return validateForm()">
+        <div class="form-group">
+            <label for="username">Username</label>
+            <input type="text" name="username" id="username" placeholder="Enter Username" required minlength="3">
+            <div class="error-message" id="username-error">Username must be at least 3 characters long</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="first-name">First Name</label>
+            <input type="text" name="first-name" id="first-name" placeholder="Enter First Name" required>
+            <div class="error-message" id="firstname-error">First name is required</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="last-name">Last Name</label>
+            <input type="text" name="last-name" id="last-name" placeholder="Enter Last Name" required>
+            <div class="error-message" id="lastname-error">Last name is required</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" name="email" id="email" placeholder="Enter Email Address" required>
+            <div class="error-message" id="email-error">Please enter a valid email address</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="password">Password</label>
+            <input type="password" name="password" id="password" placeholder="Enter Password" required minlength="6">
+            <div class="error-message" id="password-error">Password must be at least 6 characters long</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="confirmpassword">Confirm Password</label>
+            <input type="password" name="confirmpassword" id="confirmpassword" placeholder="Confirm Password" required>
+            <div class="error-message" id="confirmpassword-error">Passwords do not match</div>
+        </div>
 
-            <!-- Google reCAPTCHA Widget -->
-            <div style="width:100%;">
-                <div class="g-recaptcha" data-sitekey="6Lc3xS0rAAAAAF5YBcvyg1L2ezRehsfHiPhB3p00"></div>
-            </div>
+        <!-- Google reCAPTCHA Widget - UPDATE THE SITE KEY HERE -->
+        <div class="recaptcha-container">
+            <div class="g-recaptcha" data-sitekey="YOUR_NEW_SITE_KEY_HERE"></div>
+        </div>
 
-            <div class="buttons">
-                <button type="submit" class="next-button">Submit</button>
-            </div>
-        </form>
-        <p class="footer-text">
-            Already have an account? <a href="login.php">Log in</a>
-        </p>
-    </div>
+        <div class="buttons">
+            <button type="submit" class="next-button" id="submitBtn">Submit</button>
+        </div>
+    </form>
+    
+    <p class="footer-text">
+        Already have an account? <a href="login.php">Log in</a>
+    </p>
+</div>
 
-    <!-- reCAPTCHA Script -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<!-- reCAPTCHA Script -->
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
 
-    <script>
-        function validatePasswords() {
-            const password = document.getElementById("password").value;
-            const confirmPassword = document.getElementById("confirmpassword").value;
+<script>
+    function validateForm() {
+        let isValid = true;
+        
+        // Reset all error messages
+        document.querySelectorAll('.error-message').forEach(msg => {
+            msg.style.display = 'none';
+        });
 
-            if (password !== confirmPassword) {
-                alert("The passwords do not match. Please try again.");
-                document.getElementById("confirmpassword").value = "";
-                return false;
-            }
-            return true;
+        // Username validation
+        const username = document.getElementById("username").value;
+        if (username.length < 3) {
+            document.getElementById("username-error").style.display = 'block';
+            isValid = false;
         }
-    </script>
+
+        // First name validation
+        const firstName = document.getElementById("first-name").value;
+        if (firstName.trim() === '') {
+            document.getElementById("firstname-error").style.display = 'block';
+            isValid = false;
+        }
+
+        // Last name validation
+        const lastName = document.getElementById("last-name").value;
+        if (lastName.trim() === '') {
+            document.getElementById("lastname-error").style.display = 'block';
+            isValid = false;
+        }
+
+        // Email validation
+        const email = document.getElementById("email").value;
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            document.getElementById("email-error").style.display = 'block';
+            isValid = false;
+        }
+
+        // Password validation
+        const password = document.getElementById("password").value;
+        if (password.length < 6) {
+            document.getElementById("password-error").style.display = 'block';
+            isValid = false;
+        }
+
+        // Confirm password validation
+        const confirmPassword = document.getElementById("confirmpassword").value;
+        if (password !== confirmPassword) {
+            document.getElementById("confirmpassword-error").style.display = 'block';
+            document.getElementById("confirmpassword").value = "";
+            isValid = false;
+        }
+
+        // reCAPTCHA validation
+        const recaptchaResponse = grecaptcha.getResponse();
+        if (recaptchaResponse.length === 0) {
+            alert("Please complete the reCAPTCHA verification.");
+            isValid = false;
+        }
+
+        // Show loading state if form is valid
+        if (isValid) {
+            const submitBtn = document.getElementById("submitBtn");
+            submitBtn.textContent = "Submitting...";
+            submitBtn.disabled = true;
+            document.querySelector('.container').classList.add('loading');
+        }
+
+        return isValid;
+    }
+
+    // Real-time validation
+    document.getElementById("password").addEventListener('input', function() {
+        const confirmPassword = document.getElementById("confirmpassword");
+        if (confirmPassword.value !== '' && this.value !== confirmPassword.value) {
+            document.getElementById("confirmpassword-error").style.display = 'block';
+        } else {
+            document.getElementById("confirmpassword-error").style.display = 'none';
+        }
+    });
+
+    document.getElementById("confirmpassword").addEventListener('input', function() {
+        const password = document.getElementById("password").value;
+        if (this.value !== password) {
+            document.getElementById("confirmpassword-error").style.display = 'block';
+        } else {
+            document.getElementById("confirmpassword-error").style.display = 'none';
+        }
+    });
+
+    // Handle form submission errors
+    window.addEventListener('load', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('error') === 'recaptcha') {
+            alert('reCAPTCHA verification failed. Please try again.');
+        }
+    });
+</script>
 </body>
 </html>

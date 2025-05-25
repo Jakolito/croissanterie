@@ -7,7 +7,7 @@
     <price>650</price>
     <quantity>1</quantity>
     <producttag>c1</producttag>
-    <image>uploads/pic1.png</image>
+    <image>uploads/pic1.jpg</image>
   </pastry>
   <pastry id="p002">
     <name>Cherry Blossom Bun</name>
@@ -25,7 +25,7 @@
     <price>40</price>
     <quantity>13</quantity>
     <producttag>b1</producttag>
-    <image>uploads/pic3.png</image>
+    <image>uploads/pic3.jpg</image>
   </pastry>
   <pastry id="p004">
     <name>Mini Cheese Pillows</name>
@@ -34,7 +34,7 @@
     <price>40</price>
     <quantity>10</quantity>
     <producttag>b1</producttag>
-    <image>uploads/pic4.png</image>
+    <image>uploads/pic4.jpg</image>
   </pastry>
   <pastry id="p005">
     <name>Assorted Brookie</name>
@@ -43,7 +43,7 @@
     <price>400</price>
     <quantity>1</quantity>
     <producttag>bp1</producttag>
-    <image>uploads/pic5.png</image>
+    <image>uploads/pic5.jpg</image>
   </pastry>
   <pastry id="p006">
     <name>Ube Coco Brookie Pizza</name>
@@ -52,7 +52,7 @@
     <price>400</price>
     <quantity>2</quantity>
     <producttag>bp1</producttag>
-    <image>uploads/pic6.png</image>
+    <image>uploads/pic6.jpg</image>
   </pastry>
   <pastry id="p007">
     <name>Choco Chip Brookie Pizza</name>
@@ -61,7 +61,7 @@
     <price>400</price>
     <quantity>3</quantity>
     <producttag>bp1</producttag>
-    <image>uploads/pic7.png</image>
+    <image>uploads/pic7.jpg</image>
   </pastry>
   <pastry id="p008">
     <name>Three Cheese Brookie Pizza</name>
@@ -70,7 +70,7 @@
     <price>400</price>
     <quantity>3</quantity>
     <producttag>bp1</producttag>
-    <image>uploads/pic8.png</image>
+    <image>uploads/pic8.jpg</image>
   </pastry>
   <pastry id="p009">
     <name>Carrot Cheesecake (5 inches)</name>
@@ -79,7 +79,7 @@
     <price>650</price>
     <quantity>3</quantity>
     <producttag>c1</producttag>
-    <image>uploads/pic9.png</image>
+    <image>uploads/pic9.jpg</image>
   </pastry>
   <pastry id="p010">
     <name>Coffee Caramel Chiffon (6 inches)</name>
@@ -88,7 +88,7 @@
     <price>650</price>
     <quantity>3</quantity>
     <producttag>c1</producttag>
-    <image>uploads/pic10.png</image>
+    <image>uploads/pic10.jpg</image>
   </pastry>
   <pastry id="p011">
     <name>Choco Messy Bun</name>
@@ -97,7 +97,7 @@
     <price>40</price>
     <quantity>3</quantity>
     <producttag>b1</producttag>
-    <image>uploads/pic11.png</image>
+    <image>uploads/pic11.jpg</image>
   </pastry>
   <pastry id="p012">
     <name>Pumpkin Bun (Pack of 7)</name>
@@ -106,7 +106,7 @@
     <price>140</price>
     <quantity>3</quantity>
     <producttag>b1</producttag>
-    <image>uploads/pic12.png</image>
+    <image>uploads/pic12.jpg</image>
   </pastry>
   <pastry id="p013">
     <name>Red Velvet Messy Bun</name>
@@ -115,7 +115,7 @@
     <price>80</price>
     <quantity>3</quantity>
     <producttag>b1</producttag>
-    <image>uploads/pic13.png</image>
+    <image>uploads/pic13.jpg</image>
   </pastry>
   <pastry id="p014">
     <name>Cinnamon Loaf</name>
@@ -124,7 +124,7 @@
     <price>211</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic14.png</image>
+    <image>uploads/pic14.jpg</image>
   </pastry>
   <pastry id="p015">
     <name>Japanese Chocolate Roll</name>
@@ -133,7 +133,7 @@
     <price>50</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic15.png</image>
+    <image>uploads/pic15.jpg</image>
   </pastry>
   <pastry id="p016">
     <name>Premium Cheese Loaf</name>
@@ -142,7 +142,7 @@
     <price>200</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic16.png</image>
+    <image>uploads/pic16.jpg</image>
   </pastry>
   <pastry id="p017">
     <name>Cranberry Cheese Roll (3pcs)</name>
@@ -151,7 +151,7 @@
     <price>100</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic17.png</image>
+    <image>uploads/pic17.jpg</image>
   </pastry>
   <pastry id="p018">
     <name>Cheese Stick</name>
@@ -160,7 +160,7 @@
     <price>60</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic18.png</image>
+    <image>uploads/pic18.jpg</image>
   </pastry>
   <pastry id="p019">
     <name>Whole Wheat Loaf</name>
@@ -169,7 +169,7 @@
     <price>160</price>
     <quantity>3</quantity>
     <producttag>b2</producttag>
-    <image>uploads/pic19.png</image>
+    <image>uploads/pic19.jpg</image>
   </pastry>
 
 </pastries>
